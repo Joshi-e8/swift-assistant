@@ -1,5 +1,5 @@
 <script lang="ts">
-	import mermaid from 'mermaid';
+	// Mermaid will be loaded dynamically when needed
 
 	import { v4 as uuidv4 } from 'uuid';
 
@@ -211,6 +211,7 @@
 
 	const drawMermaidDiagram = async () => {
 		try {
+			const mermaid = await import('mermaid').then(m => m.default);
 			if (await mermaid.parse(code)) {
 				const { svg } = await mermaid.render(`mermaid-${uuidv4()}`, code);
 				mermaidHtml = svg;
@@ -275,18 +276,26 @@
 			onUpdate(token);
 		}
 
-		if (document.documentElement.classList.contains('dark')) {
-			mermaid.initialize({
-				startOnLoad: true,
-				theme: 'dark',
-				securityLevel: 'loose'
-			});
-		} else {
-			mermaid.initialize({
-				startOnLoad: true,
-				theme: 'default',
-				securityLevel: 'loose'
-			});
+		// Initialize mermaid dynamically when needed
+		if (lang === 'mermaid') {
+			try {
+				const mermaid = await import('mermaid').then(m => m.default);
+				if (document.documentElement.classList.contains('dark')) {
+					mermaid.initialize({
+						startOnLoad: true,
+						theme: 'dark',
+						securityLevel: 'loose'
+					});
+				} else {
+					mermaid.initialize({
+						startOnLoad: true,
+						theme: 'default',
+						securityLevel: 'loose'
+					});
+				}
+			} catch (error) {
+				console.error('Failed to load mermaid:', error);
+			}
 		}
 	});
 </script>

@@ -4,7 +4,7 @@
 	import { openDB, deleteDB } from 'idb';
 	import fileSaver from 'file-saver';
 	const { saveAs } = fileSaver;
-	import mermaid from 'mermaid';
+	// Mermaid will be loaded dynamically when needed
 
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';

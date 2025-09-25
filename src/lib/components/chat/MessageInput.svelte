@@ -1,7 +1,5 @@
 <script lang="ts">
-	import * as pdfjs from 'pdfjs-dist';
-	import * as pdfWorker from 'pdfjs-dist/build/pdf.worker.mjs';
-	pdfjs.GlobalWorkerOptions.workerSrc = import.meta.url + 'pdfjs-dist/build/pdf.worker.mjs';
+	// PDF.js will be loaded dynamically when needed
 
 
 
@@ -538,6 +536,19 @@
 			}
 		} else {
 			// If temporary chat is enabled, we just add the file to the list without uploading it.
+
+			// Load PDF.js dynamically only when needed
+			let pdfjsLib = null;
+			if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+				try {
+					const pdfjs = await import('pdfjs-dist');
+					await import('pdfjs-dist/build/pdf.worker.mjs');
+					pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).href;
+					pdfjsLib = pdfjs;
+				} catch (error) {
+					console.error('Failed to load PDF.js:', error);
+				}
+			}
 
 			const content = await extractContentFromFile(file, pdfjsLib).catch((error) => {
 				toast.error(
