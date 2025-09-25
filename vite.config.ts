@@ -28,26 +28,7 @@ export default defineConfig(({ mode }) => {
 		build: {
 			sourcemap: false,
 			minify: true,
-			cssMinify: false, // Temporarily disable CSS minification to avoid TailwindCSS v4 issues
-			rollupOptions: {
-				output: {
-					manualChunks(id) {
-						// Dynamic chunking based on node_modules
-						if (id.includes('node_modules')) {
-							// Group heavy dependencies
-							if (id.includes('mermaid')) return 'mermaid';
-							if (id.includes('chart.js')) return 'chart';
-							if (id.includes('codemirror')) return 'editor';
-							if (id.includes('@tiptap') || id.includes('prosemirror')) return 'editor-rich';
-							if (id.includes('katex') || id.includes('highlight.js') || id.includes('marked')) return 'utils';
-							if (id.includes('leaflet') || id.includes('panzoom') || id.includes('sortablejs')) return 'ui';
-							if (id.includes('@huggingface/transformers')) return 'transformers';
-							// Group other vendor dependencies
-							return 'vendor';
-						}
-					}
-				}
-			}
+			cssMinify: false // Temporarily disable CSS minification to avoid TailwindCSS v4 issues
 		},
 		worker: {
 			format: 'es'
