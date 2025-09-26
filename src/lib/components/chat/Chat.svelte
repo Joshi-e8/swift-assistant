@@ -2811,18 +2811,14 @@
 />
 
 <div
-	class="h-screen max-h-[100dvh] transition-width duration-200 ease-in-out {$showSidebar
-		? '  md:max-w-[calc(100%-260px)]'
-		: ' '} w-full max-w-full flex flex-col"
+	class="h-screen max-h-[100dvh] transition-width duration-200 ease-in-out w-full max-w-full flex flex-col"
 	id="chat-container"
 >
 	{#if !loading}
 		<div in:fade={{ duration: 50 }} class="w-full h-full flex flex-col">
 			{#if $settings?.backgroundImageUrl ?? null}
 				<div
-					class="absolute {$showSidebar
-						? 'md:max-w-[calc(100%-260px)] md:translate-x-[260px]'
-						: ''} top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
+					class="absolute top-0 left-0 w-full h-full bg-cover bg-center bg-no-repeat"
 					style="background-image: url({$settings.backgroundImageUrl})  "
 				/>
 
@@ -2866,34 +2862,20 @@
 								}}
 							>
 								<div class=" h-full w-full flex flex-col">
-									<!-- Chatbot/Chat Title Header -->
-									{#if true}
-										<div class="flex items-center justify-center py-3 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-											<div class="flex items-center space-x-3 max-w-xs">
-												{#if currentBot && currentBot.picture}
-													<img
-														src={currentBot.picture}
-														alt="{currentBot.name} avatar"
-														class="w-6 h-6 rounded-full object-cover flex-shrink-0"
-													/>
-												{:else}
-													<div class="w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-														<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
-														</svg>
-													</div>
-												{/if}
-												<div class="flex items-center space-x-2 min-w-0">
-													<span class="text-sm font-medium text-gray-900 truncate">
-														{computedHeaderTitle}
-													</span>
-													<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-													</svg>
-												</div>
-											</div>
+									<!-- Chat Header matching target design -->
+									<div class="flex items-center justify-between py-4 px-6 border-b border-gray-200 bg-white sticky top-0 z-10">
+										<div class="flex items-center">
+											<!-- Chat Title -->
+											<h1 class="text-lg font-medium text-gray-900">
+												{computedHeaderTitle || 'Chatbot Name'}
+											</h1>
 										</div>
-									{/if}
+
+										<!-- Right side - AI Assistant label -->
+										<div class="text-sm text-gray-500">
+											AI Assistant
+										</div>
+									</div>
 
 									<!-- Main chat messages -->
 									<Messages
@@ -2915,6 +2897,7 @@
 										bottomPadding={files.length > 0}
 										{onSelect}
 										{currentBot}
+										botName={computedHeaderTitle}
 									/>
 								</div>
 							</div>

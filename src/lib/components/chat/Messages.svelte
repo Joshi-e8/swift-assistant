@@ -48,6 +48,7 @@
 
 	export let readOnly = false;
 	export let currentBot = null;
+	export let botName = null;
 
 	export let bottomPadding = false;
 	export let autoScroll;
@@ -447,6 +448,7 @@
 							{triggerScroll}
 							{readOnly}
 							{currentBot}
+							{botName}
 						/>
 					{/each}
 				</div>
