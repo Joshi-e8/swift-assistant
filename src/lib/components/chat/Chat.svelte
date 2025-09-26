@@ -51,7 +51,8 @@
 		removeDetails,
 		getPromptVariables,
 		processDetails,
-		removeAllDetails
+		removeAllDetails,
+		extractUserMessage
 	} from '$lib/utils';
 
 	import { generateChatCompletion } from '$lib/apis/ollama';
@@ -65,6 +66,7 @@
 		sendChatMessage,
 		createChatViaAPI,
 		getChatHistory,
+		getRecentChats,
 		streamChatMessage,
 		testChatAPI
 	} from '$lib/apis/chats';
@@ -152,7 +154,27 @@
 	let params = {};
 
 	// Bot context when navigating with a chatbot id instead of a chat id
+
+		let derivedBotName: string = '';
+		$: derivedBotName = Array.isArray(chatHistory) && chatHistory.length > 0
+			? ((): string => {
+				try {
+					const m = chatHistory.find((msg) => msg?.bot_name || msg?.botName || msg?.chatbot_name) ?? chatHistory[0];
+					return (m?.bot_name ?? m?.botName ?? m?.chatbot_name ?? '').trim?.() || '';
+				} catch { return ''; }
+			})()
+			: '';
+
+		// Title preference: bot name from history > currentBot.name > explicit chat title > fallback
+		$: computedHeaderTitle = (derivedBotName && derivedBotName !== '')
+			? derivedBotName
+			: ((currentBot?.name && currentBot.name.trim() !== '')
+				? currentBot.name
+				: (($chatTitle && $chatTitle !== 'New Chat' && ($chatTitle as any)?.trim?.() !== '') ? $chatTitle : 'Ai Assistant'));
+
 	let currentBot = null;
+
+
 	let botSuggestionPrompts = [];
 
 	$: if (chatIdProp) {
@@ -200,20 +222,87 @@
 
 			await tick();
 
-				// Also attempt to load a chatbot with the same id to populate suggestions/title
+				// Derive chatbot context from chat history (when navigating via a chat id)
 				try {
-					const fetchedBot = await getChatbot(chatIdProp);
-					// Normalize various API response shapes
-					currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
-					// Normalize conversation starters shape: array of strings or objects with text
-					let startersRaw = currentBot?.conversation_starters ?? currentBot?.conversationStarters ?? [];
-					if (!Array.isArray(startersRaw)) startersRaw = [];
-					botSuggestionPrompts = startersRaw.map((s) => ({ content: typeof s === 'string' ? s : (s?.text ?? '') })).filter(p => p.content);
-					// If chat title is empty or generic, prefer bot name
-					if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
-						await chatTitle.set(currentBot?.name || $chatTitle);
+					if (Array.isArray(chatHistory) && chatHistory.length > 0) {
+						const metaItem = chatHistory.find((m) => m?.bot_name || m?.botName || m?.chatbot_name) ?? chatHistory[0];
+						const botName =
+							metaItem?.bot_name ?? metaItem?.botName ?? metaItem?.chatbot_name ?? '';
+						const botPicture =
+							metaItem?.bot_picture ?? metaItem?.botPicture ?? metaItem?.chatbot_picture ?? metaItem?.chatbot_image ?? '';
+						const botRole = metaItem?.bot_role ?? metaItem?.botRole ?? '';
+						const botGreeting = metaItem?.greeting_message ?? metaItem?.greetingMessage ?? '';
+						if (botName) {
+							currentBot = {
+								name: botName,
+								picture: botPicture || undefined,
+								bot_role: botRole || undefined,
+								greeting_message: botGreeting || undefined
+							};
+							// Prefer bot name when chat has a generic/new title
+							if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
+								await chatTitle.set(botName);
+							}
+						}
 					}
-				} catch {}
+				} catch (e) {
+					console.warn('Failed to derive bot info from chat history', e);
+				}
+				// If still no bot info, try to resolve via Recent Chats metadata, then fall back to chatbot fetch
+				if (!currentBot) {
+					// 1) Try recent-chats metadata
+					try {
+						const recent = await getRecentChats();
+						if (recent?.success && Array.isArray(recent.response)) {
+							// Match by multiple possible id fields
+							const item = recent.response.find((c) => {
+								const ids = [c.id, c.chat_id, c.chatId, c.uid, c.uuid];
+								return ids.some((v) => v !== undefined && String(v) === String(chatIdProp));
+							});
+							if (item) {
+								try { console.log('📌 Recent chat matched for header', { chatIdProp, keys: Object.keys(item) }); } catch {}
+								const name = item.bot_name || item.botName || item.chatbot_name || item.assistant_name || item.ai_name || item.title_name || (item.bot?.name) || (item.chatbot?.name) || '';
+								const picture = item.bot_picture || item.botPicture || item.chatbot_picture || item.chatbot_image || (item.bot?.picture) || (item.chatbot?.picture) || '';
+								const role = item.bot_role || item.botRole || (item.bot?.bot_role) || '';
+								const greeting = item.greeting_message || item.greetingMessage || (item.bot?.greeting_message) || '';
+								// Always try to set a friendly title from recent item, even if no bot name
+								const cleanedTitle = (typeof item.title === 'string' && item.title.trim() !== '') ? extractUserMessage(item.title) : '';
+								if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
+									if (cleanedTitle) chatTitle.set(cleanedTitle);
+								}
+								if (name) {
+									currentBot = {
+										name,
+										picture: picture || undefined,
+										bot_role: role || undefined,
+										greeting_message: greeting || undefined
+									};
+									if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
+										chatTitle.set(name);
+									}
+								}
+							}
+						}
+					} catch (e) {
+						console.warn('Failed to derive bot info from recent-chats', e);
+					}
+					// 2) Fallback: fetch a chatbot by the same id only if we still don't have a bot
+					if (!currentBot) {
+						try {
+							const fetchedBot = await getChatbot(chatIdProp);
+							currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+							let startersRaw =
+								currentBot?.conversation_starters ?? currentBot?.conversationStarters ?? [];
+							if (!Array.isArray(startersRaw)) startersRaw = [];
+							botSuggestionPrompts = startersRaw
+								.map((s) => ({ content: typeof s === 'string' ? s : s?.text ?? '' }))
+								.filter((p) => p.content);
+							if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
+								await chatTitle.set(currentBot?.name || $chatTitle);
+							}
+						} catch {}
+					}
+				}
 
 		} else if (chatIdProp && !isFrontendOnly) {
 			// Treat param as a chatbot id: load bot and show its starters/greeting in placeholder
@@ -982,7 +1071,38 @@
 						? chatContent.history
 						: convertMessagesToHistory(chatContent.messages);
 
-				chatTitle.set(chatContent.title);
+				// Prefer a user-friendly title extracted from the stored title
+				try {
+					const cleaned = typeof chatContent.title === 'string' ? extractUserMessage(chatContent.title) : '';
+					chatTitle.set(cleaned || chatContent.title || '');
+				} catch {
+					chatTitle.set(chatContent.title);
+				}
+
+					// Derive chatbot context from chat payload itself (backend may send bot fields here)
+					try {
+						if (!currentBot) {
+							const botObj = chatContent?.chatbot || chatContent?.bot || null;
+							const nameFromContent = botObj?.name || chatContent?.bot_name || chatContent?.botName || chatContent?.chatbot_name || '';
+							const pictureFromContent = botObj?.picture || chatContent?.bot_picture || chatContent?.botPicture || chatContent?.chatbot_picture || chatContent?.chatbot_image || '';
+							const roleFromContent = botObj?.bot_role || chatContent?.bot_role || chatContent?.botRole || '';
+							const greetingFromContent = botObj?.greeting_message || chatContent?.greeting_message || chatContent?.greetingMessage || '';
+							if (nameFromContent) {
+								currentBot = {
+									name: nameFromContent,
+									picture: pictureFromContent || undefined,
+									bot_role: roleFromContent || undefined,
+									greeting_message: greetingFromContent || undefined
+								};
+								if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
+									chatTitle.set(nameFromContent);
+								}
+							}
+						}
+					} catch (e) {
+						console.warn('Failed to derive bot info from chat content', e);
+					}
+
 
 				// Load chat history immediately when chat is loaded
 				console.log('🔄 Loading chat history for chatId:', $chatId);
@@ -2727,7 +2847,7 @@
 							}
 						}}
 						{history}
-						title={$chatTitle}
+						title={computedHeaderTitle}
 						shareEnabled={!!history.currentId}
 						{initNewChat}
 						showBanners={!showCommands}
@@ -2746,8 +2866,8 @@
 								}}
 							>
 								<div class=" h-full w-full flex flex-col">
-									<!-- Chatbot Name Header (when in bot mode) -->
-									{#if (currentBot && currentBot.name) || ($page?.url?.searchParams?.get('bot') === '1' && $chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== '')}
+									<!-- Chatbot/Chat Title Header -->
+									{#if true}
 										<div class="flex items-center justify-center py-3 px-4 border-b border-gray-100 bg-white/80 backdrop-blur-sm sticky top-0 z-10">
 											<div class="flex items-center space-x-3 max-w-xs">
 												{#if currentBot && currentBot.picture}
@@ -2765,7 +2885,7 @@
 												{/if}
 												<div class="flex items-center space-x-2 min-w-0">
 													<span class="text-sm font-medium text-gray-900 truncate">
-														{currentBot && currentBot.name ? currentBot.name : $chatTitle}
+														{computedHeaderTitle}
 													</span>
 													<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
