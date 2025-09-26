@@ -74,6 +74,13 @@
 			</button>
 		</div>
 
+		<!-- Center: Title (bot name or chat title) -->
+		<div class="flex-1 flex justify-center px-2 pointer-events-none">
+			<div class="max-w-[60%] truncate text-sm font-medium text-gray-900 text-center">
+				{title}
+			</div>
+		</div>
+
 		<!-- Right side: Icons -->
 		<div class="flex items-center space-x-2">
 			<!-- Hamburger menu (only show when sidebar is hidden) -->
