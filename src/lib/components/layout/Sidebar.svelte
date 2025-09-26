@@ -550,75 +550,120 @@
 	}}
 />
 
-<!-- Icon Sidebar -->
+<!-- Icon Sidebar - Narrow left sidebar matching target design -->
 <div
-	class="h-screen max-h-[100dvh] min-h-screen select-none w-[56px] shrink-0 text-white text-sm fixed z-50 top-0 left-0 flex flex-col items-center py-4 space-y-4"
+	class="h-screen max-h-[100dvh] min-h-screen select-none w-[60px] shrink-0 text-white text-sm fixed z-50 top-0 left-0 flex flex-col items-center py-4 space-y-4"
 	style="background: linear-gradient(180deg, #375A7F 0%, #8B49DE 100%);"
 >
-	<!-- Logo -->
-	<div class="flex items-center justify-center w-8 h-8">
-		<img
-			crossorigin="anonymous"
-			src="{$config?.ui?.logo_url ? $config?.ui?.logo_url : '/favicon.png'}"
-			class="size-6 object-cover rounded"
-			alt="logo"
-		/>
+	<!-- Logo/Brand Icon -->
+	<div class="flex items-center justify-center w-8 h-8 mb-2">
+		<div class="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+			<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+				<path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+			</svg>
+		</div>
 	</div>
 
 	<!-- Navigation Icons -->
-	<div class="flex flex-col space-y-2">
+	<div class="flex flex-col space-y-3">
+		<!-- Menu/Expand Sidebar -->
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => showSidebar.set(!$showSidebar)}
+			title="Toggle Menu"
+		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+			</svg>
+		</button>
+
 		<!-- Home -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => {
+				goto('/');
+				if ($mobile) {
+					showSidebar.set(false);
+				}
+			}}
+			title="Home"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
 			</svg>
 		</button>
 
+		<!-- Chat/Messages -->
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => showSidebar.set(!$showSidebar)}
+			title="Chat"
+		>
+			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z"></path>
+			</svg>
+		</button>
+
 		<!-- Library -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => showSidebar.set(!$showSidebar)}
+			title="Library"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
 			</svg>
 		</button>
 
 		<!-- Models -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => showSidebar.set(!$showSidebar)}
+			title="Models"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
 			</svg>
 		</button>
 
 		<!-- Users -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => showSidebar.set(!$showSidebar)}
+			title="Users"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
 			</svg>
 		</button>
 
 		<!-- Settings -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			on:click={() => showSettings.set(true)}
+			title="Settings"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
 			</svg>
 		</button>
 
-		<!-- Workspace -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
-			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0H8m8 0v2a2 2 0 01-2 2H10a2 2 0 01-2-2V6m8 0H8m0 0H6a2 2 0 00-2 2v6a2 2 0 002 2h2m0 0h8m-8 0v4a2 2 0 002 2h4a2 2 0 002-2v-4m-8 0V10a2 2 0 012-2h4a2 2 0 012 2v4"></path>
-			</svg>
-		</button>
-
 		<!-- Knowledge -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			title="Knowledge"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
 			</svg>
 		</button>
 
 		<!-- Tools -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
+		<button
+			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
+			title="Tools"
+		>
 			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -627,137 +672,102 @@
 	</div>
 
 	<!-- Bottom Icons -->
-	<div class="flex-1 flex flex-col justify-end space-y-2">
-		<!-- Toggle Sidebar -->
-		<button
-			on:click={() => showSidebar.set(!$showSidebar)}
-			class="p-2 rounded-lg hover:bg-white/10 transition"
-		>
-			<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path>
-			</svg>
-		</button>
-
-		<!-- Notes -->
-		{#if $user?.role === 'admin' || $user?.permissions?.workspace?.knowledge}
-			<a
-				class="p-2 rounded-lg hover:bg-white/10 transition"
-				href="/notes"
-				on:click={() => {
-					selectedChatId = null;
-					chatId.set('');
-
-					if ($mobile) {
-						showSidebar.set(false);
-					}
-				}}
-				draggable="false"
-			>
-				<svg
-					class="w-5 h-5"
-					aria-hidden="true"
-					xmlns="http://www.w3.org/2000/svg"
-					width="24"
-					height="24"
-					fill="none"
-					viewBox="0 0 24 24"
-				>
-					<path
-						stroke="currentColor"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M10 3v4a1 1 0 0 1-1 1H5m4 8h6m-6-4h6m4-8v16a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7.914a1 1 0 0 1 .293-.707l3.914-3.914A1 1 0 0 1 9.914 3H18a1 1 0 0 1 1 1Z"
-					/>
-				</svg>
-			</a>
-		{/if}
-
+	<div class="flex-1 flex flex-col justify-end space-y-3">
 		<!-- User Profile -->
-		<button class="p-2 rounded-lg hover:bg-white/10 transition">
-			<div class="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-				<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-					<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
-				</svg>
-			</div>
-		</button>
+		{#if $user !== undefined}
+			<UserMenu>
+				<button class="p-2 rounded-lg hover:bg-white/10 transition-colors" title="User Profile">
+					<div class="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+						<svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+							<path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"></path>
+						</svg>
+					</div>
+				</button>
+			</UserMenu>
+		{/if}
 	</div>
 </div>
 
-<!-- Expandable Content Sidebar -->
+<!-- Expandable Content Sidebar - Restored functionality with target design -->
 <div
 	bind:this={navElement}
 	id="content-sidebar"
 	class="h-screen max-h-[100dvh] min-h-screen select-none {$showSidebar
-		? 'md:relative w-[260px] max-w-[260px]'
-		: '-translate-x-[260px] w-[0px]'} {$isApp
-		? `ml-[56px] md:ml-[56px] `
-		: 'transition-width duration-200 ease-in-out'}  shrink-0 text-gray-900 text-sm fixed z-40 top-0 left-[56px] overflow-x-hidden border-r border-gray-200"
-	style="background: #FAFAFA;"
+		? 'md:relative w-[280px] max-w-[280px]'
+		: '-translate-x-[280px] w-[0px]'} {$isApp
+		? `ml-[60px] md:ml-[60px] `
+		: 'transition-all duration-300 ease-in-out'}  shrink-0 text-gray-900 text-sm fixed z-40 top-0 left-[60px] overflow-x-hidden border-r border-gray-200 shadow-lg"
+	style="background: #FFFFFF;"
 	data-state={$showSidebar}
 >
 	<div
-		class="flex flex-col h-screen max-h-[100dvh] w-[260px] overflow-x-hidden z-50 {$showSidebar
+		class="flex flex-col h-screen max-h-[100dvh] w-[280px] overflow-x-hidden z-50 {$showSidebar
 			? ''
 			: 'invisible'}"
 	>
-		<!-- Header with back arrow and title -->
-		<div class="px-4 py-3 border-b border-gray-100 bg-white">
-			<div class="flex items-center space-x-3">
+		<!-- Header with back arrow only -->
+		<div class="px-5 py-4 border-b border-gray-100 bg-white">
+			<div class="flex items-center">
 				<button
-					class="p-1 hover:bg-gray-100 rounded"
+					class="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
 					on:click={() => showSidebar.set(false)}
+					title="Close sidebar"
 				>
 					<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
 					</svg>
 				</button>
-				<h2 class="text-lg font-semibold text-gray-900">Chatbot Name</h2>
 			</div>
 		</div>
 
 		<!-- Content Area -->
 		<div class="flex-1 overflow-y-auto bg-white">
 			<!-- Main Action Buttons -->
-			<div class="px-3 py-3 space-y-1">
+			<div class="px-4 py-4 space-y-2">
 				<!-- New Chat Button -->
 				<button
-					class="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition"
+					class="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors group"
 					on:click={() => {
 						newChatHandler();
 					}}
 				>
-					<PencilSquare className="w-4 h-4 text-gray-600" />
-					<span class="text-gray-700 text-sm">New Chat</span>
+					<div class="flex-shrink-0">
+						<PencilSquare className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+					</div>
+					<span class="text-gray-700 font-medium group-hover:text-gray-900">New Chat</span>
 				</button>
 
 				<!-- Search Chat Button -->
 				<button
-					class="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition"
+					class="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors group"
 					on:click={() => {
 						showSearch.set(true);
 					}}
 				>
-					<Search className="w-4 h-4 text-gray-600" />
-					<span class="text-gray-700 text-sm">Search Chat</span>
+					<div class="flex-shrink-0">
+						<Search className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
+					</div>
+					<span class="text-gray-700 font-medium group-hover:text-gray-900">Search Chat</span>
 				</button>
 
 				<!-- Library Button -->
 				<button
-					class="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition"
+					class="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors group"
 					on:click={() => {
 						// Add library functionality here
 					}}
 				>
-					<svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
-					</svg>
-					<span class="text-gray-700 text-sm">Library</span>
+					<div class="flex-shrink-0">
+						<svg class="w-5 h-5 text-gray-600 group-hover:text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+						</svg>
+					</div>
+					<span class="text-gray-700 font-medium group-hover:text-gray-900">Library</span>
 				</button>
 
 				<!-- Chatbot Builder Button -->
 				<button
-					class="w-full flex items-center space-x-3 px-3 py-2 text-left hover:bg-gray-100 rounded-lg transition"
+					class="w-full flex items-center space-x-3 px-4 py-3 text-left hover:bg-gray-50 rounded-xl transition-colors group"
 					on:click={() => {
 						goto('/chatbot-builder');
 						if ($mobile) {
@@ -765,20 +775,22 @@
 						}
 					}}
 				>
-					<svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-					</svg>
-					<span class="text-gray-700 text-sm">Chatbot Builder</span>
+					<div class="flex-shrink-0">
+						<svg class="w-5 h-5 text-gray-600 group-hover:text-gray-800" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+						</svg>
+					</div>
+					<span class="text-gray-700 font-medium group-hover:text-gray-900">Chatbot Builder</span>
 				</button>
 			</div>
 
 			<!-- Chatbots Section -->
-			<div class="px-3 py-2">
-				<div class="flex items-center justify-between mb-2 px-3">
-					<div class="text-xs font-medium text-gray-500">My Chatbots ({chatbots.length})</div>
+			<div class="px-4 py-3 border-t border-gray-100">
+				<div class="flex items-center justify-between mb-3 px-1">
+					<div class="text-sm font-semibold text-gray-800">My Chatbots ({chatbots.length})</div>
 					<div class="flex items-center space-x-2">
 						<button
-							class="text-xs text-gray-500 hover:text-gray-700 transition-colors"
+							class="text-xs text-gray-500 hover:text-gray-700 transition-colors p-1 rounded hover:bg-gray-100"
 							on:click={() => refreshChatbots()}
 							title="Refresh chatbots"
 							disabled={loadingChatbots}
@@ -786,11 +798,13 @@
 							{#if loadingChatbots}
 								<div class="animate-spin rounded-full h-3 w-3 border-b border-gray-500"></div>
 							{:else}
-								↻
+								<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+								</svg>
 							{/if}
 						</button>
 						<button
-							class="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+							class="text-xs text-blue-600 hover:text-blue-800 transition-colors font-medium px-2 py-1 rounded hover:bg-blue-50"
 							on:click={() => {
 								goto('/chatbot-builder');
 								if ($mobile) {
@@ -805,15 +819,20 @@
 				</div>
 
 				{#if loadingChatbots}
-					<div class="flex items-center justify-center py-4">
-						<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
-						<span class="ml-2 text-xs text-gray-500">Loading...</span>
+					<div class="flex items-center justify-center py-6">
+						<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+						<span class="ml-3 text-sm text-gray-500">Loading...</span>
 					</div>
 				{:else if chatbots.length === 0}
-					<div class="text-center py-4 px-3">
-						<p class="text-xs text-gray-400 mb-2">No chatbots yet</p>
+					<div class="text-center py-6 px-4">
+						<div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+							<svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+							</svg>
+						</div>
+						<p class="text-sm text-gray-500 mb-3">No chatbots yet</p>
 						<button
-							class="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+							class="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium px-3 py-1.5 rounded-lg hover:bg-blue-50"
 							on:click={() => {
 								goto('/chatbot-builder');
 								if ($mobile) {
@@ -825,10 +844,10 @@
 						</button>
 					</div>
 				{:else}
-					<div class="space-y-1 max-h-48 overflow-y-auto">
+					<div class="space-y-1 max-h-52 overflow-y-auto px-1">
 						{#each chatbots as chatbot (chatbot.id)}
 							<button
-								class="w-full flex items-center space-x-3 px-3 py-2 hover:bg-gray-100 rounded-lg transition cursor-pointer text-left"
+								class="w-full flex items-center space-x-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer text-left group"
 								on:click={() => {
 									// Use the guaranteed unique ID and force Chat screen to treat it as a chatbot id
 									goto(`/c/${chatbot.id}?bot=1`);
@@ -839,23 +858,23 @@
 								title="Chat with {chatbot.name}"
 							>
 								{#if chatbot.picture}
-									<img src={chatbot.picture} alt="{chatbot.name} avatar" class="w-6 h-6 rounded-full object-cover flex-shrink-0" />
+									<img src={chatbot.picture} alt="{chatbot.name} avatar" class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
 								{:else}
-									<div class="w-6 h-6 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-										<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+										<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
 										</svg>
 									</div>
 								{/if}
 								<div class="flex-1 min-w-0">
-									<p class="text-sm font-medium text-gray-700 truncate">{chatbot.name}</p>
+									<p class="text-sm font-medium text-gray-700 truncate group-hover:text-gray-900">{chatbot.name}</p>
 									{#if chatbot.bot_role}
 										<p class="text-xs text-gray-500 truncate">{chatbot.bot_role}</p>
 									{/if}
 								</div>
 								{#if chatbot.primary_language}
 									<div class="flex-shrink-0">
-										<span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+										<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
 											{chatbot.primary_language.name.slice(0, 2).toUpperCase()}
 										</span>
 									</div>
@@ -865,9 +884,9 @@
 					</div>
 
 					{#if chatbots.length >= 10}
-						<div class="mt-2 text-center px-3">
+						<div class="mt-3 text-center px-3">
 							<button
-								class="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+								class="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-blue-50"
 								on:click={() => {
 									goto('/c/new');
 									if ($mobile) {
@@ -883,19 +902,26 @@
 			</div>
 
 			<!-- Recent Chats Section -->
-			<div class="px-3 py-2">
-				<div class="text-xs font-medium text-gray-500 mb-2 px-3">Recent Chats</div>
-				<div class="space-y-1">
+			<div class="px-4 py-3 border-t border-gray-100">
+				<div class="text-sm font-semibold text-gray-800 mb-3 px-1">Recent Chats</div>
+				<div class="space-y-1 px-1">
 					{#if recentChats.length === 0}
-						<div class="px-3 py-2 text-gray-400 text-sm">No recent chats</div>
+						<div class="px-3 py-4 text-center">
+							<div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+								<svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+								</svg>
+							</div>
+							<p class="text-sm text-gray-500">No recent chats</p>
+						</div>
 					{:else}
 						{#each recentChats as chat}
-							<div
-								class="px-3 py-2 hover:bg-gray-100 rounded-lg transition cursor-pointer {chat.id === $chatId ? 'bg-blue-100' : ''}"
+							<button
+								class="w-full px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer text-left {chat.id === $chatId ? 'bg-blue-50 border border-blue-200' : ''}"
 								on:click={() => goto(`/c/${chat.id}`)}
 							>
-								<p class="text-gray-700 text-sm truncate">{extractUserMessage(chat.title)}</p>
-							</div>
+								<p class="text-sm text-gray-700 truncate font-medium">{extractUserMessage(chat.title)}</p>
+							</button>
 						{/each}
 					{/if}
 				</div>
@@ -903,23 +929,28 @@
 		</div>
 
 		<!-- User Menu at Bottom -->
-		<div class="px-4 py-3 border-t border-gray-100 bg-white">
+		<div class="px-4 py-4 border-t border-gray-100 bg-white">
 			{#if $user !== undefined}
 				<UserMenu>
 					<button
-						class="flex items-center space-x-3 w-full px-3 py-2 hover:bg-gray-50 rounded-lg transition"
+						class="flex items-center space-x-3 w-full px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors group"
 						aria-label="User Menu"
 					>
 						<div class="flex-shrink-0">
 							<img
-								src={$user?.profile_image_url}
-								class="w-8 h-8 object-cover rounded-full"
-								alt="User profile1111"
+								src={$user?.profile_image_url || '/assets/images/avatar.png'}
+								class="w-9 h-9 object-cover rounded-full border-2 border-gray-200 group-hover:border-gray-300 transition-colors"
+								alt="User profile"
 							/>
 						</div>
-						<div class="flex-1 text-left">
-							<div class="text-sm font-medium text-gray-900">{$user?.name}</div>
-							<div class="text-xs text-gray-500">admin</div>
+						<div class="flex-1 text-left min-w-0">
+							<div class="text-sm font-semibold text-gray-900 truncate">{$user?.name}</div>
+							<div class="text-xs text-gray-500 capitalize">{$user?.role || 'user'}</div>
+						</div>
+						<div class="flex-shrink-0">
+							<svg class="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+							</svg>
 						</div>
 					</button>
 				</UserMenu>

@@ -58,28 +58,23 @@
 
 <nav class="sticky top-0 z-30 w-full bg-white drag-region">
 	<div class="flex items-center justify-between w-full px-4 py-3">
-		<!-- Left side: Back arrow only -->
+		<!-- Left side: Sidebar toggle button -->
 		<div class="flex items-center">
 			<button
 				class="p-1 hover:bg-gray-100 rounded transition"
 				on:click={() => {
-					// Handle back navigation
-					window.history.back();
+					showSidebar.set(!$showSidebar);
 				}}
-				aria-label="Go Back"
+				aria-label="Toggle Sidebar"
 			>
 				<svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
 				</svg>
 			</button>
 		</div>
 
-		<!-- Center: Title (bot name or chat title) -->
-		<div class="flex-1 flex justify-center px-2 pointer-events-none">
-			<div class="max-w-[60%] truncate text-sm font-medium text-gray-900 text-center">
-				{title}
-			</div>
-		</div>
+		<!-- Center: Empty space -->
+		<div class="flex-1"></div>
 
 		<!-- Right side: Icons -->
 		<div class="flex items-center space-x-2">

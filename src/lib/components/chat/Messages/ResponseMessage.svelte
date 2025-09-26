@@ -15,7 +15,7 @@
 	import { getChatById } from '$lib/apis/chats';
 	import { generateTags } from '$lib/apis';
 
-	import { config, models, settings, temporaryChatEnabled, TTSWorker, user } from '$lib/stores';
+	import { config, models, settings, temporaryChatEnabled, TTSWorker, user, chatTitle } from '$lib/stores';
 	import { synthesizeOpenAISpeech } from '$lib/apis/audio';
 	import { imageGenerations } from '$lib/apis/images';
 	import {
@@ -56,6 +56,7 @@
 		files?: { type: string; url: string }[];
 		timestamp: number;
 		role: string;
+		bot_name?: string;
 		statusHistory?: {
 			done: boolean;
 			action: string;
@@ -134,6 +135,7 @@
 	export let isLastMessage = true;
 	export let readOnly = false;
 	export let currentBot = null;
+	export let botName = null;
 
 	let buttonsContainerElement: HTMLDivElement;
 	let showDeleteConfirm = false;
@@ -609,9 +611,13 @@
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
-				<Tooltip content={model?.name ?? message.model ?? 'admin'} placement="top-start">
+				<Tooltip content={currentBot?.name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'admin'} placement="top-start">
 					<span class="line-clamp-1 text-black dark:text-white">
-						{model?.name ?? message.model ?? 'Ai Assistant'}
+						{#if chatId && chatId.includes('history')}
+							History Tutor
+						{:else}
+							{currentBot?.name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'Ai Assistant'}
+						{/if}
 					</span>
 				</Tooltip>
 

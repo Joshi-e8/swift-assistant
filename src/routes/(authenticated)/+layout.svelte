@@ -42,7 +42,6 @@
 	} from '$lib/stores';
 
 	import Sidebar from '$lib/components/layout/Sidebar.svelte';
-	import TopBar from '$lib/components/layout/TopBar.svelte';
 	import SettingsModal from '$lib/components/chat/SettingsModal.svelte';
 	// import ChangelogModal from '$lib/components/ChangelogModal.svelte';
 	import AccountPending from '$lib/components/layout/Overlay/AccountPending.svelte';
@@ -198,9 +197,7 @@
 		<div class="flex h-screen max-h-[100dvh] w-full">
 			<Sidebar bind:show={showSidebar} />
 
-			<div class="flex flex-col flex-1 max-h-[100dvh] overflow-hidden">
-				<TopBar bind:showSidebar />
-
+			<div class="flex flex-col flex-1 max-h-[100dvh] overflow-hidden ml-[60px]">
 				<div class="flex flex-col flex-1 max-h-full overflow-hidden">
 					<slot />
 				</div>
