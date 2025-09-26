@@ -20,12 +20,16 @@ function showNotification(message, type = 'info') {
 // Get API base URL
 const getApiBaseUrl = () => {
   if (browser) {
-    // In browser, use the proxy configured in vite.config.ts
+    // In production, call backend API directly
+    if (PUBLIC_CUSTOM_API_BASE_URL && !window.location.hostname.includes('localhost')) {
+      return PUBLIC_CUSTOM_API_BASE_URL.replace(/\/$/, '') + '/api';
+    }
+    // In development, use the proxy configured in vite.config.ts
     return '/custom-api';
   }
   // Server-side fallback: use PUBLIC_CUSTOM_API_BASE_URL if set, otherwise local default
   const base = (PUBLIC_CUSTOM_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
-  return base;
+  return base + '/api';
 };
 
 /**
@@ -108,6 +112,8 @@ export async function createChatbot(chatbotData, options = { showAlerts: true })
       const response = await fetch(url, {
         method: 'POST',
         body: formData,
+        mode: 'cors',
+        credentials: 'omit'
       });
 
       const result = await response.json();
@@ -171,6 +177,8 @@ export async function createChatbot(chatbotData, options = { showAlerts: true })
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(jsonPayload),
+        mode: 'cors',
+        credentials: 'omit'
       });
 
       const result = await response.json();
@@ -377,6 +385,8 @@ export async function getChatbots(params = {}) {
       headers: {
         'Content-Type': 'application/json',
       },
+      mode: 'cors',
+      credentials: 'omit'
     });
 
     if (!response.ok) {
@@ -411,6 +421,8 @@ export async function getChatbot(id) {
       headers: {
         'Content-Type': 'application/json',
       },
+      mode: 'cors',
+      credentials: 'omit'
     });
 
     let data = null;
@@ -474,6 +486,8 @@ export async function deleteChatbot(id) {
       headers: {
         'Content-Type': 'application/json',
       },
+      mode: 'cors',
+      credentials: 'omit'
     });
 
     if (!response.ok) {
