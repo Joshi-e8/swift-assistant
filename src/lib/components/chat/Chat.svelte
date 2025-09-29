@@ -184,6 +184,12 @@
 	const navigateHandler = async () => {
 		loading = true;
 
+		// Reset bot context and chat history when navigating to prevent caching from previous chat
+		currentBot = null;
+		botSuggestionPrompts = [];
+		chatHistory = [];
+		lastLoadedChatId = '';
+
 		prompt = '';
 		messageInput?.setText('');
 
@@ -239,6 +245,7 @@
 								bot_role: botRole || undefined,
 								greeting_message: botGreeting || undefined
 							};
+
 							// Prefer bot name when chat has a generic/new title
 							if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
 								await chatTitle.set(botName);
@@ -946,6 +953,16 @@
 		await chatId.set('');
 		await chatTitle.set('');
 
+		// Reset bot context for new chat, but preserve if URL parameters indicate bot selection
+		const shouldPreserveBotContext = $page?.url?.searchParams?.get('bot') === '1' ||
+										 $page?.url?.searchParams?.has('chatbot') ||
+										 $page?.url?.searchParams?.has('botId');
+
+		if (!shouldPreserveBotContext) {
+			currentBot = null;
+			botSuggestionPrompts = [];
+		}
+
 		history = {
 			messages: {},
 			currentId: null
@@ -1013,6 +1030,34 @@
 				if (($page.url.searchParams.get('submit') ?? 'true') === 'true') {
 					await tick();
 					submitPrompt(q);
+				}
+			}
+		}
+
+		// Check for bot-related URL parameters and establish bot context for new chats
+		const botParam = $page.url.searchParams.get('bot');
+		const chatbotParam = $page.url.searchParams.get('chatbot');
+		const botIdParam = $page.url.searchParams.get('botId');
+
+		if (botParam || chatbotParam || botIdParam) {
+			// If we have bot parameters but no current bot context, try to establish it
+			if (!currentBot) {
+				try {
+					// Try to get bot ID from various parameter sources
+					const botId = chatbotParam || botIdParam;
+					if (botId) {
+						const fetchedBot = await getChatbot(botId);
+						currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+						if (currentBot?.name) {
+							await chatTitle.set(currentBot.name);
+							// Set conversation starters if available
+							let startersRaw = currentBot?.conversation_starters ?? currentBot?.conversationStarters ?? [];
+							if (!Array.isArray(startersRaw)) startersRaw = [];
+							botSuggestionPrompts = startersRaw.map((s) => ({ content: typeof s === 'string' ? s : (s?.text ?? '') })).filter(p => p.content);
+						}
+					}
+				} catch (e) {
+					console.warn('Failed to load bot from URL parameters:', e);
 				}
 			}
 		}
@@ -1932,15 +1977,70 @@
 			console.log('🚀 Starting streaming chat with chat ID:', $chatId);
 
 			// Use the streaming API
+			// Set streaming state immediately before starting
+			responseMessage.streaming = true;
+			responseMessage.done = false;
+			history.messages[responseMessageId] = responseMessage;
+			history = history;
+			console.log('🔍 DEBUG: Message state before streaming:', {
+				id: responseMessage.id,
+				streaming: responseMessage.streaming,
+				done: responseMessage.done,
+				content: responseMessage.content,
+				inHistory: history.messages[responseMessageId]?.streaming
+			});
+
+			// TEMPORARY: Use mock streaming to test animation components
+			console.log('🎭 Using mock streaming to test animation');
+
+			// Simulate the thinking phase (empty content, streaming)
+			await tick();
+			console.log('🤔 Mock: Thinking phase - should show animated dots');
+
+			// Wait a bit to show the thinking phase
+			await new Promise(resolve => setTimeout(resolve, 1000));
+
+			// Simulate onStart callback
+			responseMessage.streaming = true;
+			responseMessage.done = false;
+			history.messages[responseMessageId] = responseMessage;
+			history = history;
+			console.log('📡 Mock: onStart - streaming state set');
+
+			// Simulate streaming chunks
+			const testMessage = "Hello! This is a test of the ChatGPT-style typing animation. Each character should appear one by one with a smooth typing effect. The animation should show animated dots first, then character-by-character typing, and finally the complete message.";
+
+			for (let i = 0; i < testMessage.length; i++) {
+				await new Promise(resolve => setTimeout(resolve, 50)); // 50ms per character
+				responseMessage.content = testMessage.slice(0, i + 1);
+				history.messages[responseMessageId] = responseMessage;
+				history = history;
+
+				if (i === 0) {
+					console.log('📝 Mock: First character - should switch to typing animation');
+				}
+			}
+
+			// Simulate onComplete callback
+			await new Promise(resolve => setTimeout(resolve, 500));
+			responseMessage.done = true;
+			responseMessage.streaming = false;
+			history.messages[responseMessageId] = responseMessage;
+			history = history;
+			console.log('✅ Mock: onComplete - animation should be complete');
+
+			return; // Skip real API for now
+
 			await streamChatMessage($chatId, prompt, {
 				onStart: () => {
 					console.log('📡 Stream started');
+					// Streaming state is already set above, but let's ensure it's correct
 					responseMessage.streaming = true;
+					responseMessage.done = false;
 					history.messages[responseMessageId] = responseMessage;
 					history = history;
 				},
 				onChunk: (chunk) => {
-					console.log('📥 Received chunk:', chunk);
 					// Update message content in real-time
 					responseMessage.content += chunk;
 					history.messages[responseMessageId] = responseMessage;
@@ -1952,7 +2052,7 @@
 					}
 				},
 				onComplete: (fullResponse) => {
-					console.log('✅ Stream complete. Full response:', fullResponse);
+					console.log('✅ Stream complete');
 					// Mark as complete
 					responseMessage.done = true;
 					responseMessage.streaming = false;
@@ -2028,9 +2128,8 @@
 		// Force frontend-only mode for now
 		console.log('🔄 Forcing frontend-only mode');
 
-		// 🔄 STREAMING: To enable streaming, replace the line below with:
-		// await sendPromptToCustomAPIStreaming(prompt);
-		await sendPromptToCustomAPI(prompt);
+		// 🔄 STREAMING: Enabled streaming version
+		await sendPromptToCustomAPIStreaming(prompt);
 		return;
 
 		let _chatId = JSON.parse(JSON.stringify($chatId));
@@ -2724,7 +2823,14 @@
 					content: msg.system,
 					timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now(),
 					models: selectedModels || ['static-model'],
-					done: true
+					done: true,
+					// Preserve bot name and other metadata from chat history
+					bot_name: msg.bot_name,
+					botName: msg.bot_name, // Alternative field name
+					chatbot_name: msg.bot_name, // Alternative field name
+					bot_picture: msg.bot_picture,
+					bot_role: msg.bot_role,
+					greeting_message: msg.greeting_message
 				};
 
 				if (lastMessageId && integratedHistory.messages[lastMessageId]) {
