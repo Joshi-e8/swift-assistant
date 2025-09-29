@@ -7,6 +7,13 @@
   export let onContinue = () => {};
   export let continueButtonText = 'Continue';
 
+  // Debug the received data
+  $: {
+    console.log('LanguageControlSection - received data:', data);
+    console.log('Primary language in data:', data.primaryLanguage);
+    console.log('Secondary languages in data:', data.secondaryLanguages);
+  }
+
   let showPrimaryLanguages = false;
   let languages = [];
   let secondaryLanguages = [];

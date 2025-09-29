@@ -117,14 +117,41 @@ function getFallbackLanguages() {
 }
 
 /**
- * Get language name by code
- * @param {string} code - Language code
+ * Get language name by code or ID
+ * @param {string|number} code - Language code or ID
  * @param {Array} languages - Array of language objects
  * @returns {string} Language name or code if not found
  */
 export function getLanguageName(code, languages) {
-  const lang = languages.find(l => l.code === code);
-  return lang ? lang.name : code;
+  console.log('getLanguageName called with code:', code, 'languages length:', languages?.length);
+
+  if (!code || !languages || !Array.isArray(languages)) {
+    console.log('getLanguageName early return:', code || 'Not set');
+    return code || 'Not set';
+  }
+
+  // Handle both string and numeric codes
+  const codeStr = String(code);
+
+  // First try to find by code (for manual builder format like 'en', 'es')
+  let lang = languages.find(l => l.code === codeStr);
+  console.log('Found by code:', lang);
+
+  // If not found, try to find by id (for AI builder format like '1', '2')
+  if (!lang) {
+    lang = languages.find(l => String(l.id) === codeStr);
+    console.log('Found by id:', lang);
+  }
+
+  // If still not found, try to find by numeric comparison
+  if (!lang && !isNaN(code)) {
+    lang = languages.find(l => l.id === parseInt(code));
+    console.log('Found by numeric comparison:', lang);
+  }
+
+  const result = lang ? lang.name : code;
+  console.log('getLanguageName result:', result);
+  return result;
 }
 
 /**

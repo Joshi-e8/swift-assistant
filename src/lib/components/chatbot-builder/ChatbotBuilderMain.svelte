@@ -15,6 +15,7 @@
   import LiveBotPreview from './LiveBotPreview.svelte';
   import ConversationalAiBuilder from './ConversationalAiBuilder.svelte';
   import BotTestingPanel from './BotTestingPanel.svelte';
+  import ConfigurationReview from './ConfigurationReview.svelte';
 
 
   let config = {};
@@ -27,6 +28,8 @@
   let activePreviewTab = 'manual';
   let selectedPersona = null;
   let showAiSetupLanding = true; // Show the "Start AI Setup" landing page initially
+  let showConfigurationReview = false;
+  let reviewConfig = {};
 
 
   // Subscribe to stores
@@ -75,6 +78,104 @@
 
   function startAiSetup() {
     showAiSetupLanding = false;
+  }
+
+  function handleConfigurationReview(event) {
+    reviewConfig = event.detail.config;
+    console.log('handleConfigurationReview - received config:', reviewConfig);
+    console.log('Primary language:', reviewConfig.primaryLanguage);
+    console.log('Secondary languages:', reviewConfig.secondaryLanguages);
+    showConfigurationReview = true;
+  }
+
+  async function handleConfigurationConfirmed() {
+    // Configuration confirmed, apply it to the store and proceed to manual builder
+    // Convert AI-generated language IDs to manual builder format
+    const convertedConfig = await convertLanguageIdsToManualFormat(reviewConfig);
+    updateConfig(convertedConfig);
+    showConfigurationReview = false;
+    buildMethod.set('manual');
+    activeSection.set('overview');
+  }
+
+  async function convertLanguageIdsToManualFormat(config) {
+    console.log('convertLanguageIdsToManualFormat called with config:', config);
+    try {
+      // Import the static LANGUAGES array used by manual builder
+      const { LANGUAGES } = await import('$lib/chatbot-builder-types.js');
+      const { fetchLanguages } = await import('$lib/api/languages.js');
+
+      // Get API languages for conversion
+      const apiLanguages = await fetchLanguages();
+      console.log('API languages for conversion:', apiLanguages);
+      console.log('Manual builder LANGUAGES:', LANGUAGES);
+
+      const convertedConfig = { ...config };
+
+      // Convert primary language
+      if (config.primaryLanguage) {
+        console.log('Converting primary language:', config.primaryLanguage);
+        const apiLang = apiLanguages.find(l => String(l.id) === String(config.primaryLanguage));
+        console.log('Found API language:', apiLang);
+        if (apiLang) {
+          // Find corresponding manual builder language by name
+          const manualLang = LANGUAGES.find(l => l.name.toLowerCase() === apiLang.name.toLowerCase());
+          console.log('Found manual language:', manualLang);
+          if (manualLang) {
+            convertedConfig.primaryLanguage = manualLang.code;
+            console.log('Converted primary language to:', manualLang.code);
+          }
+        }
+      }
+
+      // Convert secondary languages
+      if (Array.isArray(config.secondaryLanguages)) {
+        console.log('Converting secondary languages:', config.secondaryLanguages);
+        const convertedSecondary = [];
+        for (const langId of config.secondaryLanguages) {
+          const apiLang = apiLanguages.find(l => String(l.id) === String(langId));
+          if (apiLang) {
+            const manualLang = LANGUAGES.find(l => l.name.toLowerCase() === apiLang.name.toLowerCase());
+            if (manualLang) {
+              convertedSecondary.push(manualLang.code);
+            }
+          }
+        }
+        convertedConfig.secondaryLanguages = convertedSecondary;
+        console.log('Converted secondary languages to:', convertedSecondary);
+      }
+
+      console.log('Final converted config:', convertedConfig);
+      return convertedConfig;
+    } catch (error) {
+      console.error('Error converting language IDs:', error);
+      // Return original config if conversion fails
+      return config;
+    }
+  }
+
+  async function handleConfigurationEdit(event) {
+    // User wants to edit a specific section, apply config first
+    // Convert AI-generated language IDs to manual builder format
+    const convertedConfig = await convertLanguageIdsToManualFormat(reviewConfig);
+    updateConfig(convertedConfig);
+    showConfigurationReview = false;
+    buildMethod.set('manual');
+    activeSection.set(event.detail.section);
+  }
+
+  function handleBackToAI() {
+    // User wants to go back to AI builder
+    showConfigurationReview = false;
+    buildMethod.set('ai');
+    showAiSetupLanding = false;
+  }
+
+  function handleChatbotCreated() {
+    // Chatbot was successfully created, show success message or redirect
+    showConfigurationReview = false;
+    // Could redirect to chatbot list or show success message
+    console.log('Chatbot created successfully!');
   }
 
   async function handleSave() {
@@ -252,8 +353,17 @@
         </div>
 
         <!-- Section Content -->
-        <div class="flex-1 min-h-0 overflow-hidden">
-          {#if currentBuildMethod === 'ai'}
+        <div class="flex-1 min-h-0 {showConfigurationReview ? '' : 'overflow-hidden'}">
+          {#if showConfigurationReview}
+            <!-- Configuration Review Step -->
+            <ConfigurationReview
+              generatedConfig={reviewConfig}
+              on:confirmed={handleConfigurationConfirmed}
+              on:created={handleChatbotCreated}
+              on:edit={handleConfigurationEdit}
+              on:back={handleBackToAI}
+            />
+          {:else if currentBuildMethod === 'ai'}
             {#if showAiSetupLanding}
               <!-- AI-Assisted Build Landing Page -->
               <div class="flex items-center justify-center h-full p-6">
@@ -277,7 +387,7 @@
                 </div>
               </div>
             {:else}
-              <ConversationalAiBuilder on:applied={() => { /* applied */ }} />
+              <ConversationalAiBuilder on:review-config={handleConfigurationReview} />
             {/if}
           {:else}
             <!-- Manual Build Interface -->

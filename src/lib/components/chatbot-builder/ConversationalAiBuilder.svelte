@@ -15,7 +15,6 @@
   let userResponses = {};
   let isComplete = false;
   let error = '';
-  let isSaving = false;
   let chatContainer;
 
   // Available options for suggestions
@@ -302,11 +301,16 @@
 
       generatedConfig = config;
 
-      // Show success message
-      addBotMessage(`Great! I've created your chatbot configuration. Your bot will be named "${config.name}" and will help with ${config.description.toLowerCase()}. Would you like me to create the bot now?`, 1000);
+      // Show success message and automatically transition
+      addBotMessage(`Great! I've created your chatbot configuration. Your bot will be named "${config.name}" and will help with ${config.description.toLowerCase()}.`, 1000);
 
       isComplete = true;
       currentSuggestions = []; // Clear suggestions when complete
+
+      // Automatically transition to configuration review after a brief delay
+      setTimeout(() => {
+        transitionToConfigurationReview();
+      }, 2500);
     } catch (e) {
       console.error('Chatbot generation error:', e);
       error = e.message || 'Failed to generate chatbot configuration';
@@ -317,9 +321,14 @@
         const fallbackConfig = await createBasicConfigFromResponses();
         if (fallbackConfig) {
           generatedConfig = fallbackConfig;
-          addBotMessage(`I've created your chatbot using a simplified approach. Your bot "${fallbackConfig.name}" is ready! Would you like me to create it?`, 1500);
+          addBotMessage(`I've created your chatbot using a simplified approach. Your bot "${fallbackConfig.name}" is ready!`, 1500);
           isComplete = true;
           currentSuggestions = [];
+
+          // Automatically transition to configuration review after fallback generation
+          setTimeout(() => {
+            transitionToConfigurationReview();
+          }, 2500);
         }
       } catch (fallbackError) {
         console.error('Fallback generation also failed:', fallbackError);
@@ -354,7 +363,7 @@
       instructions: 'You are a helpful AI assistant.',
       greetingMessage: 'Hello! How can I help you today?',
       gradeLevel: '',
-      primaryLanguage: '1',
+      primaryLanguage: '1', // Default to English (API ID format)
       secondaryLanguages: [],
       conversationStarters: ['How can you help me?', 'What can you do?', 'Tell me about yourself'],
       capabilities: {
@@ -378,20 +387,37 @@
     // Enhanced fallback parsing with intelligent pattern matching
     const responses = userResponses;
 
-    // Smart capability parsing
+    // Smart capability parsing with improved detection
     const capabilitiesText = (responses.capabilities || '').toLowerCase();
+    console.log('ConversationalAiBuilder - Capabilities text:', capabilitiesText);
+
+    // Enhanced capability detection with more inclusive patterns
     const capabilities = {
-      webSearch: /web|search|internet|online|current|news|real.?time/.test(capabilitiesText),
-      fileUpload: /file|upload|document|pdf|analyze|attachment/.test(capabilitiesText),
-      imageUpload: /image|photo|picture|vision|visual|see/.test(capabilitiesText),
-      imageCreation: /create|generate|make|draw.*image|image.*create/.test(capabilitiesText),
-      drawingTools: /draw|sketch|paint|canvas|art/.test(capabilitiesText),
-      canvasEdit: /canvas|edit|modify|change/.test(capabilitiesText)
+      webSearch: /web|search|internet|online|current|news|real.?time|research|information|latest|up.?to.?date/.test(capabilitiesText),
+      fileUpload: /file|upload|document|pdf|analyze|attachment|text|doc|analysis/.test(capabilitiesText),
+      imageUpload: /image|photo|picture|vision|visual|see|view|analyze.*image/.test(capabilitiesText),
+      imageCreation: /create|generate|make|draw.*image|image.*create|illustration|graphic|visual.*content/.test(capabilitiesText),
+      drawingTools: /draw|sketch|paint|canvas|art|whiteboard|diagram/.test(capabilitiesText),
+      canvasEdit: /canvas|edit|modify|change|text.*edit|document.*edit/.test(capabilitiesText)
     };
+
+    // If user mentions "all capabilities" or similar, enable common ones
+    if (/all|everything|full|complete|comprehensive/.test(capabilitiesText)) {
+      capabilities.webSearch = true;
+      capabilities.fileUpload = true;
+      capabilities.imageUpload = true;
+    }
+
+    // Default to web search for educational bots if no specific capabilities mentioned
+    if (capabilitiesText.trim() === '' || capabilitiesText.includes('basic')) {
+      capabilities.webSearch = true; // Most educational bots benefit from web search
+    }
+
+    console.log('ConversationalAiBuilder - Generated capabilities:', capabilities);
 
     // Smart language parsing
     const languageText = (responses.languages || 'english').toLowerCase();
-    let primaryLanguage = '1'; // Default English
+    let primaryLanguage = '1'; // Default English (ID)
     let secondaryLanguages = [];
 
     if (availableLanguages.length > 0) {
@@ -401,6 +427,7 @@
         (lang.code && languageText.includes(lang.code.toLowerCase()))
       );
       if (primaryMatch) {
+        // Store as string ID for consistency with API format
         primaryLanguage = String(primaryMatch.id);
       }
 
@@ -410,6 +437,7 @@
         const commonSecondary = availableLanguages.filter(lang =>
           ['spanish', 'french', 'german', 'chinese'].includes(lang.name.toLowerCase())
         );
+        // Store as string IDs for consistency with API format
         secondaryLanguages = commonSecondary.slice(0, 2).map(lang => String(lang.id));
       }
     }
@@ -451,19 +479,41 @@
     // Smart greeting generation
     const greetingMessage = generateSmartGreeting(responses, botRole, subject);
 
+    // Generate comprehensive configuration with ALL manual builder fields
+    console.log('ConversationalAiBuilder - Generated language values:');
+    console.log('Primary language:', primaryLanguage);
+    console.log('Secondary languages:', secondaryLanguages);
+    console.log('Available languages:', availableLanguages);
+
     return {
+      // Overview Section
       name: botName.slice(0, 100),
       description: responses.purpose || 'AI Assistant',
+      curriculumInfo: generateCurriculumInfo(responses),
+      image: null,
+
+      // Behavior & Knowledge Section
+      gradeLevel: responses.gradeLevel || '',
       botRole: botRole,
       instructions: instructions,
       greetingMessage: greetingMessage,
-      gradeLevel: responses.gradeLevel || '',
+      conversationStarters: generateConversationStarters(),
+      knowledgeBase: [],
+
+      // Language Control Section
       primaryLanguage: primaryLanguage,
       secondaryLanguages: secondaryLanguages,
-      conversationStarters: generateConversationStarters(),
+
+      // Grading Section
+      gradingRubric: generateGradingRubric(responses),
+
+      // Bot Capabilities Section
       capabilities: capabilities,
+
+      // Session Control Section
       sessionControl: {
         duration: 0,
+        deadline: null,
         pauseResume: false
       }
     };
@@ -516,57 +566,78 @@
   function generateConversationStarters() {
     const subject = userResponses.subject || '';
     const role = userResponses.botRole || 'assistant';
-    
+
     const starters = [];
-    
+
     if (subject) {
       starters.push(`Tell me about ${subject}`);
       starters.push(`How can you help me with ${subject}?`);
       starters.push(`What ${subject} topics do you know about?`);
+      starters.push(`Can you explain a ${subject} concept?`);
     } else {
       starters.push(`What can you help me with?`);
       starters.push(`Tell me about your capabilities`);
       starters.push(`How do you work?`);
+      starters.push(`What topics can we discuss?`);
     }
-    
+
     return starters;
   }
 
-  async function createBot() {
+  function generateCurriculumInfo(responses) {
+    const subject = responses.subject || '';
+    const gradeLevel = responses.gradeLevel || '';
+    const purpose = responses.purpose || '';
+
+    if (subject && gradeLevel) {
+      return `This chatbot is designed to support ${gradeLevel} students in ${subject}. ${purpose}`;
+    } else if (subject) {
+      return `This chatbot focuses on ${subject} education and learning support.`;
+    } else if (purpose.toLowerCase().includes('educat')) {
+      return `This educational chatbot provides learning support and guidance.`;
+    }
+
+    return 'General purpose AI assistant for educational support.';
+  }
+
+  function generateGradingRubric(responses) {
+    const subject = responses.subject || '';
+    const gradeLevel = responses.gradeLevel || '';
+
+    if (subject && gradeLevel) {
+      return {
+        beginning: `Student shows basic understanding of ${subject} concepts appropriate for ${gradeLevel} level.`,
+        emerging: `Student demonstrates developing proficiency in ${subject} with some guidance needed.`,
+        proficient: `Student shows solid understanding and can apply ${subject} concepts independently.`,
+        advanced: `Student demonstrates mastery of ${subject} concepts and can extend learning to new situations.`
+      };
+    }
+
+    return {
+      beginning: 'Student shows basic understanding of concepts with significant support needed.',
+      emerging: 'Student demonstrates developing understanding with some guidance required.',
+      proficient: 'Student shows solid understanding and can work independently.',
+      advanced: 'Student demonstrates mastery and can extend learning to new contexts.'
+    };
+  }
+
+  async function transitionToConfigurationReview() {
     if (!generatedConfig) return;
 
-    console.log('🚀 Creating bot with config:', generatedConfig);
-    isSaving = true;
-    addBotMessage("Creating your chatbot now...", 500);
+    console.log('🔄 Transitioning to configuration review with config:', generatedConfig);
 
     try {
-      // Update the store with the generated config
-      console.log('📝 Updating config store...');
-      updateConfig(generatedConfig);
+      // Add a brief message about the transition
+      addBotMessage("Perfect! I've prepared your chatbot configuration. Let me show you a review of everything I've set up...", 1000);
 
-      // Save to backend
-      console.log('💾 Saving to backend...');
-      const result = await saveConfig();
-      console.log('✅ Backend response:', result);
+      // Transition to configuration review after a short delay
+      setTimeout(() => {
+        dispatch('review-config', { config: generatedConfig });
+      }, 2000);
 
-      if (result?.success) {
-        addBotMessage("🎉 Success! Your chatbot has been created and is ready to use. You can now test it or switch to manual editing to make further adjustments.", 1000);
-
-        // Switch to manual mode after creation
-        setTimeout(() => {
-          buildMethod.set('manual');
-          activeSection.set('overview');
-          dispatch('applied');
-        }, 2000);
-      } else {
-        throw new Error(result?.error || 'Failed to create chatbot');
-      }
-    } catch (e) {
-      console.error('❌ Error creating bot:', e);
-      error = e.message || 'Failed to create chatbot';
-      addBotMessage("I'm sorry, there was an error creating your chatbot. Please try again.", 1000);
-    } finally {
-      isSaving = false;
+    } catch (error) {
+      console.error('Error transitioning to configuration review:', error);
+      addBotMessage(`Sorry, there was an error preparing your configuration: ${error.message}. Please try again.`, 1000);
     }
   }
 
@@ -637,21 +708,63 @@
   }
 </script>
 
-<div class="h-full flex flex-col bg-white">
-  <!-- Header -->
-  <div class="border-b border-gray-200 p-4">
-    <div class="flex items-center justify-between">
+<style>
+  .suggestion-btn:hover {
+    background: linear-gradient(135deg, #6878B6 0%, #8B49DE 100%) !important;
+    color: white !important;
+  }
+
+  .input-focus:focus {
+    --tw-ring-color: #6878B6 !important;
+    border-color: #6878B6 !important;
+  }
+</style>
+
+<div class="h-full flex flex-col" style="background: #FFFFFF;">
+  <!-- Header with Progress -->
+  <div class="border-b border-gray-200 p-4" style="background: #FFFFFF;">
+    <div class="flex items-center justify-between mb-4">
       <div>
-        <h2 class="text-xl font-semibold text-gray-900">AI Chatbot Builder</h2>
+        <h2 class="text-xl font-semibold text-gray-900" style="font-family: 'Plus Jakarta Sans', sans-serif;">AI-Assisted Chatbot Builder</h2>
         <p class="text-sm text-gray-600">Let our AI assistant guide you through creating your perfect chatbot</p>
       </div>
-      <button
-        class="text-sm text-blue-600 hover:text-blue-700"
-        on:click={restartConversation}
-      >
-        Start Over
-      </button>
+      <div class="flex items-center gap-4">
+        {#if !isComplete && !isGenerating}
+          <div class="text-sm" style="color: #6878B6; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;">
+            Step {currentQuestionIndex + 1} of {questions.length}
+          </div>
+        {/if}
+        <button
+          class="text-sm hover:bg-gray-100 px-3 py-1 rounded-lg transition-colors"
+          style="color: #6878B6;"
+          on:click={restartConversation}
+        >
+          Start Over
+        </button>
+      </div>
     </div>
+
+    <!-- Progress Bar -->
+    {#if !isComplete}
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div
+          class="h-2 rounded-full transition-all duration-500 ease-out"
+          style="background: linear-gradient(90deg, #6878B6 0%, #8B49DE 100%); width: {((currentQuestionIndex + 1) / questions.length) * 100}%"
+        ></div>
+      </div>
+    {:else if isGenerating}
+      <div class="w-full bg-gray-200 rounded-full h-2">
+        <div
+          class="h-2 rounded-full animate-pulse"
+          style="background: linear-gradient(90deg, #6878B6 0%, #8B49DE 100%); width: 100%"
+        ></div>
+      </div>
+      <div class="mt-2 text-center">
+        <p class="text-sm" style="color: #6878B6; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;">
+          🤖 Generating your chatbot configuration...
+        </p>
+      </div>
+    {/if}
   </div>
 
   <!-- Chat Container -->
@@ -661,19 +774,19 @@
         <div class="flex {message.type === 'user' ? 'justify-end' : 'justify-start'}">
           <div class="max-w-xs lg:max-w-md">
             {#if message.type === 'bot'}
-              <div class="flex items-start space-x-2">
-                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <div class="flex items-start space-x-3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style="background: linear-gradient(135deg, #6878B6 0%, #8B49DE 100%);">
                   <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
                 </div>
-                <div class="bg-gray-100 rounded-lg px-4 py-2">
-                  <p class="text-sm text-gray-800 whitespace-pre-wrap">{message.text}</p>
+                <div class="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                  <p class="text-sm text-gray-800 whitespace-pre-wrap" style="font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.5;">{message.text}</p>
                 </div>
               </div>
             {:else}
-              <div class="bg-blue-600 text-white rounded-lg px-4 py-2">
-                <p class="text-sm whitespace-pre-wrap">{message.text}</p>
+              <div class="rounded-xl px-4 py-3 text-white" style="background: linear-gradient(135deg, #6878B6 0%, #8B49DE 100%);">
+                <p class="text-sm whitespace-pre-wrap" style="font-family: 'Plus Jakarta Sans', sans-serif; line-height: 1.5;">{message.text}</p>
               </div>
             {/if}
           </div>
@@ -683,17 +796,17 @@
       <!-- Typing Indicator -->
       {#if isTyping}
         <div class="flex justify-start">
-          <div class="flex items-start space-x-2">
-            <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 rounded-full flex items-center justify-center" style="background: linear-gradient(135deg, #6878B6 0%, #8B49DE 100%);">
               <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
               </svg>
             </div>
-            <div class="bg-gray-100 rounded-lg px-4 py-2">
+            <div class="bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
               <div class="flex space-x-1">
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                <div class="w-2 h-2 rounded-full animate-bounce" style="background: #6878B6;"></div>
+                <div class="w-2 h-2 rounded-full animate-bounce" style="background: #6878B6; animation-delay: 0.1s"></div>
+                <div class="w-2 h-2 rounded-full animate-bounce" style="background: #6878B6; animation-delay: 0.2s"></div>
               </div>
             </div>
           </div>
@@ -706,31 +819,29 @@
   <div class="border-t border-gray-200 p-4">
     <div class="max-w-3xl mx-auto">
       {#if isComplete && generatedConfig}
-        <!-- Action Buttons -->
+        <!-- Transition Message -->
         <div class="flex items-center justify-center space-x-4">
-          <button
-            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
-            on:click={createBot}
-            disabled={isSaving}
-          >
-            {isSaving ? 'Creating Bot...' : 'Yes, Create My Bot!'}
-          </button>
-          <button
-            class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            on:click={restartConversation}
-          >
-            Start Over
-          </button>
+          <div class="text-center">
+            <div class="inline-flex items-center px-6 py-3 rounded-xl border" style="background: linear-gradient(135deg, #6878B6 0%, #8B49DE 100%); color: white;">
+              <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;">Preparing configuration review...</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-3" style="font-family: 'Plus Jakarta Sans', sans-serif;">You'll be able to review and customize everything in the next step</p>
+          </div>
         </div>
       {:else if !isGenerating}
         <!-- Quick Reply Suggestions -->
         {#if currentSuggestions.length > 0 && !isTyping}
           <div class="mb-4">
-            <p class="text-sm text-gray-600 mb-2">Quick replies:</p>
+            <p class="text-sm text-gray-600 mb-3" style="font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;">Quick replies:</p>
             <div class="flex flex-wrap gap-2">
               {#each currentSuggestions as suggestion}
                 <button
-                  class="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors"
+                  class="suggestion-btn px-4 py-2 text-sm rounded-xl border border-gray-200 hover:border-transparent transition-all duration-200"
+                  style="background: white; color: #6878B6; font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;"
                   on:click={() => selectSuggestion(suggestion)}
                 >
                   {suggestion}
@@ -741,17 +852,19 @@
         {/if}
 
         <!-- Message Input -->
-        <div class="flex space-x-2">
+        <div class="flex space-x-3">
           <input
             type="text"
-            class="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            class="input-focus flex-1 border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:border-transparent transition-all duration-200"
+            style="font-family: 'Plus Jakarta Sans', sans-serif;"
             placeholder="Type your response or use quick replies above..."
             bind:value={currentMessage}
             on:keypress={handleKeyPress}
             disabled={isTyping}
           />
           <button
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            class="px-6 py-3 text-white rounded-xl hover:opacity-90 disabled:opacity-50 transition-all duration-200"
+            style="background: linear-gradient(135deg, #6878B6 0%, #8B49DE 100%); font-family: 'Plus Jakarta Sans', sans-serif; font-weight: 500;"
             on:click={handleUserResponse}
             disabled={!currentMessage.trim() || isTyping}
           >
