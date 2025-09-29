@@ -50,9 +50,12 @@ export async function createChatbot(chatbotData, options = { showAlerts: true })
     // Check if we have actual files to upload
     const hasFiles = chatbotData.chatbot_files && chatbotData.chatbot_files.length > 0 &&
                     chatbotData.chatbot_files.some(file => file instanceof File && file.size > 0);
+    const pictureIsFile = chatbotData.picture instanceof File;
+    const pictureIsDataUrl = typeof chatbotData.picture === 'string' && chatbotData.picture.startsWith('data:');
+    const needsMultipart = hasFiles || pictureIsFile || pictureIsDataUrl;
 
-    if (hasFiles) {
-      // Use FormData for file uploads with JSON data
+    if (needsMultipart) {
+      // Use FormData for file uploads with JSON data (including picture)
       const formData = new FormData();
 
       // Add all non-file data as individual form fields (Django REST Framework format)
@@ -81,32 +84,50 @@ export async function createChatbot(chatbotData, options = { showAlerts: true })
         });
       }
 
-      // Add conversation starters
-      if (chatbotData.conversation_starters && chatbotData.conversation_starters.length > 0) {
-        chatbotData.conversation_starters.forEach((starter, index) => {
-          formData.append(`conversation_starters[${index}].text`, starter.text || starter);
+      // Add conversation starters (only non-empty)
+      if (Array.isArray(chatbotData.conversation_starters)) {
+        const validStarters = chatbotData.conversation_starters
+          .map((s) => (typeof s === 'string' ? s : (s?.text ?? '')))
+          .map((s) => (typeof s === 'string' ? s.trim() : ''))
+          .filter((s) => s.length > 0);
+        validStarters.forEach((text, index) => {
+          formData.append(`conversation_starters[${index}].text`, text);
         });
       }
 
-      // Add analysis scales
-      if (chatbotData.analysis_scales && chatbotData.analysis_scales.length > 0) {
-        chatbotData.analysis_scales.forEach((scale, index) => {
-          formData.append(`analysis_scales[${index}].level_name`, scale.level_name || '');
-          formData.append(`analysis_scales[${index}].description`, scale.description || '');
-          formData.append(`analysis_scales[${index}].color`, scale.color || '');
+      // Add analysis scales (only those with level_name and color)
+      if (Array.isArray(chatbotData.analysis_scales)) {
+        const validScales = chatbotData.analysis_scales.filter(
+          (s) => typeof s?.level_name === 'string' && s.level_name.trim() && typeof s?.color === 'string' && s.color.trim()
+        );
+        validScales.forEach((scale, index) => {
+          formData.append(`analysis_scales[${index}].level_name`, scale.level_name.trim());
+          formData.append(`analysis_scales[${index}].description`, (scale.description ?? '').toString());
+          formData.append(`analysis_scales[${index}].color`, scale.color.trim());
         });
       }
 
-      // Add files
-      chatbotData.chatbot_files.forEach((file, index) => {
-        if (file instanceof File && file.size > 0) {
-          formData.append(`chatbot_files[${index}].file`, file);
-        }
-      });
+      // Add files (only real File instances)
+      if (Array.isArray(chatbotData.chatbot_files)) {
+        chatbotData.chatbot_files.forEach((file, index) => {
+          if (file instanceof File && file.size > 0) {
+            formData.append(`chatbot_files[${index}].file`, file);
+          }
+        });
+      }
 
       // Add picture if provided
-      if (chatbotData.picture instanceof File) {
+      if (pictureIsFile) {
         formData.append('picture', chatbotData.picture);
+      } else if (pictureIsDataUrl) {
+        try {
+          const blob = dataURLtoBlob(chatbotData.picture);
+          const ext = (blob.type.split('/')[1] || 'png');
+          const file = new File([blob], `avatar.${ext}`, { type: blob.type });
+          formData.append('picture', file);
+        } catch (e) {
+          console.warn('Failed to convert data URL picture to file', e);
+        }
       }
 
       const response = await fetch(url, {

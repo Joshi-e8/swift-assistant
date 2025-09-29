@@ -79,14 +79,10 @@ export async function saveConfig() {
     const result = await createChatbot(apiData);
     console.log('Chatbot created successfully:', result);
 
-    // Persist returned id (and keep other fields) so preview/chat uses the saved bot
-    try {
-      const newId = result?.id ?? result?.data?.id ?? null;
-      if (newId) {
-        chatbotConfig.update(cfg => ({ ...cfg, id: String(newId) }));
-      }
-    } catch {}
+    // Reset the form after successful creation
+    resetConfig();
 
+    // If you need to keep the created ID somewhere else, handle it in the caller.
     isDirty.set(false);
     return { success: true, data: result };
   } catch (error) {

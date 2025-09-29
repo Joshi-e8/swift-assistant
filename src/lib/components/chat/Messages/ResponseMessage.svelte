@@ -30,7 +30,6 @@
 
 	import Name from './Name.svelte';
 	import ProfileImage from './ProfileImage.svelte';
-	import Skeleton from './Skeleton.svelte';
 	import Image from '$lib/components/common/Image.svelte';
 	import Tooltip from '$lib/components/common/Tooltip.svelte';
 	import RateComment from './RateComment.svelte';
@@ -43,7 +42,7 @@
 	import Error from './Error.svelte';
 	import Citations from './Citations.svelte';
 	import CodeExecutions from './CodeExecutions.svelte';
-	import ContentRenderer from './ContentRenderer.svelte';
+	import AnimatedContentRenderer from './AnimatedContentRenderer.svelte';
 	import { KokoroWorker } from '$lib/workers/KokoroWorker';
 	import FileItem from '$lib/components/common/FileItem.svelte';
 	import FollowUps from './ResponseMessage/FollowUps.svelte';
@@ -57,6 +56,8 @@
 		timestamp: number;
 		role: string;
 		bot_name?: string;
+		streaming?: boolean;
+		done?: boolean;
 		statusHistory?: {
 			done: boolean;
 			action: string;
@@ -71,7 +72,6 @@
 			urls?: string[];
 			query?: string;
 		};
-		done: boolean;
 		error?: boolean | { content: string };
 		sources?: string[];
 		code_executions?: {
@@ -611,13 +611,9 @@
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
-				<Tooltip content={currentBot?.name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'admin'} placement="top-start">
+				<Tooltip content={currentBot?.name ?? message?.bot_name ?? message?.botName ?? message?.chatbot_name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'admin'} placement="top-start">
 					<span class="line-clamp-1 text-black dark:text-white">
-						{#if chatId && chatId.includes('history')}
-							History Tutor
-						{:else}
-							{currentBot?.name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'Ai Assistant'}
-						{/if}
+						{currentBot?.name ?? message?.bot_name ?? message?.botName ?? message?.chatbot_name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'Ai Assistant'}
 					</span>
 				</Tooltip>
 
@@ -791,21 +787,22 @@
 							</div>
 						{:else}
 							<div class="w-full flex flex-col relative" id="response-content-container">
-								{#if message.content === '' && !message.error && (message?.statusHistory ?? [...(message?.status ? [message?.status] : [])]).length === 0}
-									<Skeleton />
-								{:else if message.content && message.error !== true}
-									<!-- always show message contents even if there's an error -->
-									<!-- unless message.error === true which is legacy error handling, where the error message is stored in message.content -->
-									<ContentRenderer
+								<!-- Always use AnimatedContentRenderer for assistant messages - it handles all states internally -->
+								<AnimatedContentRenderer
 										id={message.id}
 										{history}
 										{selectedModels}
-										content={message.content}
+										content={message.content || ''}
 										sources={message.sources}
 										floatingButtons={message?.done && !readOnly}
 										save={!readOnly}
 										preview={!readOnly}
 										{model}
+										isStreaming={message.streaming === true}
+										isComplete={message.done === true}
+										botName={currentBot?.name ?? 'AI Assistant'}
+										enableTypingAnimation={true}
+										typingSpeed={25}
 										onTaskClick={async (e) => {
 											console.log(e);
 										}}
@@ -847,9 +844,8 @@
 											updateChat();
 										}}
 									/>
-								{/if}
 
-								{#if message?.error}
+							{#if message?.error}
 									<Error content={message?.error?.content ?? message.content} />
 								{/if}
 

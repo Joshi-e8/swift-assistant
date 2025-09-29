@@ -102,6 +102,13 @@
     savedBot = null;
   }
 
+
+  // Resolve avatar: prefer locally selected image from builder config, otherwise saved bot image fields
+  let avatarSrc = '';
+  $: avatarSrc = (typeof $chatbotConfig?.image === 'string' && $chatbotConfig.image)
+    ? $chatbotConfig.image
+    : (savedBot?.picture_url || savedBot?.picture || savedBot?.image_url || savedBot?.image || savedBot?.avatar || savedBot?.icon || '');
+
   async function ensureChat() {
     if (chatId) return chatId;
     const res = await createChatViaAPI('', currentChatbotId || undefined);
@@ -439,10 +446,14 @@
   <div class="border-b border-gray-200 px-4 py-3" style="width: 100%; height: 58px; opacity: 1; border-top-left-radius: 19px; border-top-right-radius: 19px; background: linear-gradient(261.37deg, rgba(135, 206, 250, 0.1) 25.1%, rgba(104, 120, 182, 0.1) 76.25%); box-sizing: border-box;">
     <div class="flex items-center space-x-3">
       <!-- Chatbot Avatar -->
-      <div class="w-10 h-10 rounded-full flex items-center justify-center" style="background: #E8E8E8;">
-        <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
+      <div class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden" style="background: #E8E8E8;">
+        {#if avatarSrc}
+          <img src={avatarSrc} alt="Chatbot Avatar" class="w-full h-full object-cover" on:error={() => (avatarSrc = '')} />
+        {:else}
+          <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        {/if}
       </div>
 
       <!-- Chatbot Info -->

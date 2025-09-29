@@ -33,7 +33,7 @@
       icon: 'imageUpload'
     },
     {
-      key: 'createImages',
+      key: 'imageCreation',
       title: 'Create Images',
       description: 'Allow user to create / infographic with AI',
       icon: 'createImages'
