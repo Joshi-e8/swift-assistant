@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { chatbotConfig, updateConfig, errors } from '$lib/chatbot-builder-stores.js';
   import { fetchLanguages, getLanguageName as getLanguageNameUtil } from '$lib/api/languages.js';
+  import { LANGUAGES } from '$lib/chatbot-builder-types.js';
 
   export let data = {};
   export let onContinue = () => {};
@@ -46,6 +47,9 @@
       languages = [...fetchedLanguages];
       secondaryLanguages = [...fetchedLanguages];
 
+      // Normalize any pre-populated manual codes like 'en' to API id-string codes
+      normalizeLanguageBindings();
+
     } catch (err) {
       console.error('Failed to load languages:', err);
       error = 'Failed to load languages. Using fallback options.';
@@ -54,6 +58,56 @@
       loadingPromise = null;
     }
   }
+
+  // Normalize store values to API id-string codes once languages are loaded
+  function normalizeLanguageBindings() {
+    if (!languages || !languages.length) return;
+
+    let updated = {};
+
+    // Normalize primary language
+    if (data.primaryLanguage) {
+      const curr = String(data.primaryLanguage);
+      const existsAsId = languages.find((l) => String(l.code) === curr);
+      if (!existsAsId) {
+        // Try manual 'en' style codes via LANGUAGES mapping
+        const manual = LANGUAGES.find((l) => l.code === curr);
+        if (manual) {
+          const byName = languages.find((l) => (l.name || '').toLowerCase() === manual.name.toLowerCase());
+          if (byName) {
+            updated.primaryLanguage = String(byName.code);
+          }
+        }
+      }
+    }
+
+    // Normalize secondary languages
+    if (Array.isArray(data.secondaryLanguages) && data.secondaryLanguages.length) {
+      const normalized = [];
+      for (const cur of data.secondaryLanguages) {
+        const val = String(cur);
+        const existsAsId = languages.find((l) => String(l.code) === val);
+        if (existsAsId) {
+          normalized.push(val);
+        } else {
+          const manual = LANGUAGES.find((l) => l.code === val);
+          if (manual) {
+            const byName = languages.find((l) => (l.name || '').toLowerCase() === manual.name.toLowerCase());
+            if (byName) normalized.push(String(byName.code));
+          }
+        }
+      }
+      // Only update if any value changed and not empty
+      if (normalized.length && (normalized.length !== data.secondaryLanguages.length || normalized.some((v, i) => v !== String(data.secondaryLanguages[i])))) {
+        updated.secondaryLanguages = normalized;
+      }
+    }
+
+    if (Object.keys(updated).length) {
+      updateConfig(updated);
+    }
+  }
+
 
   function getLanguageName(code) {
     return getLanguageNameUtil(code, languages);
@@ -65,6 +119,15 @@
       ? current.filter(code => code !== langCode)
       : [...current, langCode];
     updateConfig({ secondaryLanguages: updated });
+  }
+
+  // Re-normalize if data arrives after languages loaded
+  $: if (!loading && languages.length) {
+    const needsPrimary = data?.primaryLanguage && !languages.some((l) => String(l.code) === String(data.primaryLanguage));
+    const needsSecondary = Array.isArray(data?.secondaryLanguages) && data.secondaryLanguages.some((v) => !languages.some((l) => String(l.code) === String(v)));
+    if (needsPrimary || needsSecondary) {
+      normalizeLanguageBindings();
+    }
   }
 </script>
 
