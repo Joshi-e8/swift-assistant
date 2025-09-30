@@ -5,6 +5,11 @@ import containerQuries from '@tailwindcss/container-queries';
 export default {
 	darkMode: 'class',
 	content: ['./src/**/*.{html,js,svelte,ts}'],
+	safelist: [
+		// Message bubble styles that are dynamically constructed
+		'max-w-[85%]',
+		'rounded-tr-lg'
+	],
 	theme: {
 		extend: {
 			colors: {
