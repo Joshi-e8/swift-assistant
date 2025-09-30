@@ -128,7 +128,7 @@
 								>
 									<div class="size-9 @sm:size-10 rounded-full border-[1px] border-gray-100 dark:border-none overflow-hidden">
 										<img
-											crossorigin="anonymous"
+											
 											src={botImage}
 											alt="{botName} avatar"
 											class="w-full h-full object-cover"

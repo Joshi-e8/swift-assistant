@@ -41,6 +41,7 @@
 	export let triggerScroll;
 	export let readOnly = false;
 	export let currentBot = null;
+	export let botName = null;
 </script>
 
 <div
@@ -90,6 +91,7 @@
 				{addMessages}
 				{readOnly}
 				{currentBot}
+				{botName}
 			/>
 		{:else}
 			<MultiResponseMessages
@@ -111,6 +113,8 @@
 				{triggerScroll}
 				{addMessages}
 				{readOnly}
+				{currentBot}
+				{botName}
 			/>
 		{/if}
 	{/if}

@@ -56,6 +56,8 @@
 		timestamp: number;
 		role: string;
 		bot_name?: string;
+		bot_image?: string;
+		bot_picture?: string;
 		streaming?: boolean;
 		done?: boolean;
 		statusHistory?: {
@@ -136,6 +138,18 @@
 	export let readOnly = false;
 	export let currentBot = null;
 	export let botName = null;
+
+
+	$: avatarSrc = (currentBot && currentBot.picture) ? currentBot.picture : (message?.bot_image || message?.bot_picture || '/assets/images/favicon.png');
+	$: console.debug('[ResponseMessage] avatar', {
+		id: message?.id,
+		avatarSrc,
+		currentBotPicture: currentBot?.picture,
+		messageBotImage: message?.bot_image,
+		messageBotPicture: message?.bot_picture,
+		messageStreaming: message?.streaming,
+		messageDone: message?.done
+	});
 
 	let buttonsContainerElement: HTMLDivElement;
 	let showDeleteConfirm = false;
@@ -603,17 +617,19 @@
 		dir={$settings.chatDirection}
 	>
 		<div class={`shrink-0 ltr:mr-3 rtl:ml-3 hidden @lg:flex mt-1 `}>
-			<ProfileImage
-				src={(currentBot && currentBot.picture) ? currentBot.picture : '/assets/images/favicon.png'}
-				className={'size-8 assistant-message-profile-image'}
-			/>
+			{#key avatarSrc}
+				<ProfileImage
+					src={avatarSrc}
+					className={'size-8 assistant-message-profile-image'}
+				/>
+			{/key}
 		</div>
 
 		<div class="flex-auto w-0 pl-1 relative">
 			<Name>
 				<Tooltip content={currentBot?.name ?? message?.bot_name ?? message?.botName ?? message?.chatbot_name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'admin'} placement="top-start">
 					<span class="line-clamp-1 text-black dark:text-white">
-						{currentBot?.name ?? message?.bot_name ?? message?.botName ?? message?.chatbot_name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'Ai Assistant'}
+						{currentBot?.name ?? message?.bot_name ?? message?.botName ?? message?.chatbot_name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'Swift Ai Assistant'}
 					</span>
 				</Tooltip>
 
@@ -800,7 +816,7 @@
 										{model}
 										isStreaming={message.streaming === true}
 										isComplete={message.done === true}
-										botName={currentBot?.name ?? 'AI Assistant'}
+										botName={currentBot?.name ?? message?.bot_name ?? message?.botName ?? message?.chatbot_name ?? botName ?? ($chatTitle && $chatTitle !== 'New Chat' && $chatTitle !== 'Ai Assistant' ? $chatTitle : null) ?? model?.name ?? message.model ?? 'AI Assistant'}
 										enableTypingAnimation={true}
 										typingSpeed={25}
 										onTaskClick={async (e) => {

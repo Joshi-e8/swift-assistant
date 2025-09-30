@@ -27,6 +27,8 @@
 
 	export let isLastMessage;
 	export let readOnly = false;
+	export let currentBot = null;
+	export let botName = null;
 
 	export let updateChat: Function;
 	export let editMessage: Function;
@@ -275,6 +277,9 @@
 									}}
 									{addMessages}
 									{readOnly}
+						{currentBot}
+						{botName}
+
 								/>
 							{/if}
 						{/key}
