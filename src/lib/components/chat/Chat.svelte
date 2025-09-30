@@ -235,7 +235,7 @@
 						const botName =
 							metaItem?.bot_name ?? metaItem?.botName ?? metaItem?.chatbot_name ?? '';
 						const botPicture =
-							metaItem?.bot_picture ?? metaItem?.botPicture ?? metaItem?.chatbot_picture ?? metaItem?.chatbot_image ?? '';
+							metaItem?.bot_picture ?? metaItem?.bot_image ?? metaItem?.botPicture ?? metaItem?.chatbot_picture ?? metaItem?.chatbot_image ?? '';
 						const botRole = metaItem?.bot_role ?? metaItem?.botRole ?? '';
 						const botGreeting = metaItem?.greeting_message ?? metaItem?.greetingMessage ?? '';
 						if (botName) {
@@ -245,6 +245,8 @@
 								bot_role: botRole || undefined,
 								greeting_message: botGreeting || undefined
 							};
+						console.debug('[Chat.navigate] currentBot from history', { name: currentBot?.name, picture: currentBot?.picture });
+
 
 							// Prefer bot name when chat has a generic/new title
 							if (!($chatTitle?.trim?.()) || $chatTitle === 'New Chat') {
@@ -269,7 +271,7 @@
 							if (item) {
 								try { console.log('📌 Recent chat matched for header', { chatIdProp, keys: Object.keys(item) }); } catch {}
 								const name = item.bot_name || item.botName || item.chatbot_name || item.assistant_name || item.ai_name || item.title_name || (item.bot?.name) || (item.chatbot?.name) || '';
-								const picture = item.bot_picture || item.botPicture || item.chatbot_picture || item.chatbot_image || (item.bot?.picture) || (item.chatbot?.picture) || '';
+								const picture = item.bot_picture || item.bot_image || item.botPicture || item.chatbot_picture || item.chatbot_image || (item.bot?.picture) || (item.chatbot?.picture) || '';
 								const role = item.bot_role || item.botRole || (item.bot?.bot_role) || '';
 								const greeting = item.greeting_message || item.greetingMessage || (item.bot?.greeting_message) || '';
 								// Always try to set a friendly title from recent item, even if no bot name
@@ -298,6 +300,26 @@
 						try {
 							const fetchedBot = await getChatbot(chatIdProp);
 							currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+						{
+							const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
+							if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
+							const normalizedName = currentBot?.name || currentBot?.bot_name || currentBot?.chatbot_name || currentBot?.title || '';
+							if (normalizedName && !currentBot?.name) currentBot = { ...currentBot, name: normalizedName };
+							console.debug('[Chat.navigate] currentBot from fetched (fallback by chat id)', { name: currentBot?.name, picture: currentBot?.picture });
+
+						}
+						{
+							const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
+							if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
+							const normalizedName = currentBot?.name || currentBot?.bot_name || currentBot?.chatbot_name || currentBot?.title || '';
+							if (normalizedName && !currentBot?.name) currentBot = { ...currentBot, name: normalizedName };
+						}
+							{
+								const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
+								if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
+								const normalizedName = currentBot?.name || currentBot?.bot_name || currentBot?.chatbot_name || currentBot?.title || '';
+								if (normalizedName && !currentBot?.name) currentBot = { ...currentBot, name: normalizedName };
+							}
 							let startersRaw =
 								currentBot?.conversation_starters ?? currentBot?.conversationStarters ?? [];
 							if (!Array.isArray(startersRaw)) startersRaw = [];
@@ -317,6 +339,14 @@
 				const fetchedBot = await getChatbot(chatIdProp);
 				// Normalize various API response shapes
 				currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+				{
+					console.debug('[Chat.navigate] currentBot from fetched (chatbot id mode)', { name: currentBot?.name, picture: currentBot?.picture });
+
+					const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
+					if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
+					const normalizedName = currentBot?.name || currentBot?.bot_name || currentBot?.chatbot_name || currentBot?.title || '';
+					if (normalizedName && !currentBot?.name) currentBot = { ...currentBot, name: normalizedName };
+				}
 				// Normalize conversation starters shape
 				let startersRaw = currentBot?.conversation_starters ?? currentBot?.conversationStarters ?? [];
 				if (!Array.isArray(startersRaw)) startersRaw = [];
@@ -1048,6 +1078,12 @@
 					if (botId) {
 						const fetchedBot = await getChatbot(botId);
 						currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+						{
+							const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
+							if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
+							const normalizedName = currentBot?.name || currentBot?.bot_name || currentBot?.chatbot_name || currentBot?.title || '';
+							if (normalizedName && !currentBot?.name) currentBot = { ...currentBot, name: normalizedName };
+						}
 						if (currentBot?.name) {
 							await chatTitle.set(currentBot.name);
 							// Set conversation starters if available
@@ -1129,7 +1165,7 @@
 						if (!currentBot) {
 							const botObj = chatContent?.chatbot || chatContent?.bot || null;
 							const nameFromContent = botObj?.name || chatContent?.bot_name || chatContent?.botName || chatContent?.chatbot_name || '';
-							const pictureFromContent = botObj?.picture || chatContent?.bot_picture || chatContent?.botPicture || chatContent?.chatbot_picture || chatContent?.chatbot_image || '';
+							const pictureFromContent = botObj?.picture || chatContent?.bot_picture || chatContent?.bot_image || chatContent?.botPicture || chatContent?.chatbot_picture || chatContent?.chatbot_image || '';
 							const roleFromContent = botObj?.bot_role || chatContent?.bot_role || chatContent?.botRole || '';
 							const greetingFromContent = botObj?.greeting_message || chatContent?.greeting_message || chatContent?.greetingMessage || '';
 							if (nameFromContent) {
@@ -1418,6 +1454,9 @@
 				currentParentId = messageId;
 			} else {
 				const responseMessage = {
+					bot_name: currentBot?.name,
+					bot_picture: currentBot?.picture || undefined,
+					bot_image: currentBot?.picture || undefined,
 					id: messageId,
 					parentId: currentParentId,
 					childrenIds: [],
@@ -1714,13 +1753,18 @@
 				content: '',
 				timestamp: Math.floor(Date.now() / 1000),
 				models: ['custom-api'],
-				done: false
+				done: false,
+				// Attach bot metadata for avatar/name rendering
+				bot_name: currentBot?.name,
+				bot_picture: currentBot?.picture || undefined,
+				bot_image: currentBot?.picture || undefined
 			};
 
 			// Add response message to history
 			history.messages[responseMessageId] = responseMessage;
 			history.messages[history.currentId].childrenIds.push(responseMessageId);
 			history.currentId = responseMessageId;
+
 			history = history;
 
 			// Scroll to bottom
@@ -1745,6 +1789,12 @@
 								if (!currentBot) {
 									const fetchedBot = await getChatbot(routeId).catch(() => null);
 									currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+									{
+										const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
+										if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
+										const normalizedName = currentBot?.name || currentBot?.bot_name || currentBot?.chatbot_name || currentBot?.title || '';
+										if (normalizedName && !currentBot?.name) currentBot = { ...currentBot, name: normalizedName };
+									}
 								}
 								let maybeId = currentBot?.id;
 								if (typeof maybeId === 'number') {
@@ -1950,6 +2000,7 @@
 		try {
 			// Create response message
 			const responseMessageId = uuidv4();
+
 			const responseMessage = {
 				id: responseMessageId,
 				parentId: history.currentId,
@@ -1959,8 +2010,21 @@
 				timestamp: Math.floor(Date.now() / 1000),
 				models: ['custom-api'],
 				done: false,
-				streaming: true
+				streaming: true,
+				// Attach bot metadata for avatar/name rendering
+				bot_name: currentBot?.name,
+				bot_picture: currentBot?.picture || undefined,
+				bot_image: currentBot?.picture || undefined
 			};
+			console.debug('[Chat.sendPromptToCustomAPIStreaming] Creating response message', {
+				responseMessageId,
+				currentBotName: currentBot?.name,
+				currentBotPicture: currentBot?.picture,
+				attachedBotName: responseMessage.bot_name,
+				attachedBotPicture: responseMessage.bot_picture,
+				attachedBotImage: responseMessage.bot_image
+			});
+
 
 			// Add response message to history
 			history.messages[responseMessageId] = responseMessage;
@@ -2154,7 +2218,11 @@
 					model: model.id,
 					modelName: model.name ?? model.id,
 					modelIdx: modelIdx ? modelIdx : _modelIdx,
-					timestamp: Math.floor(Date.now() / 1000) // Unix epoch
+					timestamp: Math.floor(Date.now() / 1000), // Unix epoch
+					// Attach bot metadata for avatar/name rendering
+					bot_name: currentBot?.name,
+					bot_picture: currentBot?.picture || undefined,
+					bot_image: currentBot?.picture || undefined
 				};
 
 				// Add message to history and Set currentId to messageId
@@ -2750,6 +2818,32 @@
 			if (historyRes && historyRes.success && Array.isArray(historyRes.response)) {
 				chatHistory = historyRes.response;
 				console.log('✅ Chat history loaded successfully:', chatHistory.length, 'messages');
+
+				// Derive bot context from loaded chat history if not already set
+				if (!currentBot && chatHistory.length > 0) {
+					try {
+						const metaItem = chatHistory.find((m) => m?.bot_name || m?.botName || m?.chatbot_name) ?? chatHistory[0];
+						const botName = metaItem?.bot_name ?? metaItem?.botName ?? metaItem?.chatbot_name ?? '';
+						const botPicture = metaItem?.bot_picture ?? metaItem?.bot_image ?? metaItem?.botPicture ?? metaItem?.chatbot_picture ?? metaItem?.chatbot_image ?? '';
+						const botRole = metaItem?.bot_role ?? metaItem?.botRole ?? '';
+						const botGreeting = metaItem?.greeting_message ?? metaItem?.greetingMessage ?? '';
+
+						if (botName || botPicture) {
+							currentBot = {
+								name: botName || undefined,
+								picture: botPicture || undefined,
+								bot_role: botRole || undefined,
+								greeting_message: botGreeting || undefined
+							};
+							console.debug('[Chat.loadChatHistoryOnce] Derived currentBot from chat history', {
+								name: currentBot?.name,
+								picture: currentBot?.picture
+							});
+						}
+					} catch (e) {
+						console.warn('Failed to derive bot info from loaded chat history', e);
+					}
+				}
 			} else {
 				chatHistory = [];
 				console.log('❌ No chat history found or invalid response:', historyRes);
@@ -2766,6 +2860,32 @@
 	// Debug reactive statement to track chatHistory changes
 	$: if (chatHistory) {
 		console.log('🔍 Chat history updated:', chatHistory.length, 'messages', chatHistory);
+
+		// Derive bot context from chat history if not already set (reactive fallback)
+		if (!currentBot && chatHistory.length > 0) {
+			try {
+				const metaItem = chatHistory.find((m) => m?.bot_name || m?.botName || m?.chatbot_name) ?? chatHistory[0];
+				const botName = metaItem?.bot_name ?? metaItem?.botName ?? metaItem?.chatbot_name ?? '';
+				const botPicture = metaItem?.bot_picture ?? metaItem?.bot_image ?? metaItem?.botPicture ?? metaItem?.chatbot_picture ?? metaItem?.chatbot_image ?? '';
+				const botRole = metaItem?.bot_role ?? metaItem?.botRole ?? '';
+				const botGreeting = metaItem?.greeting_message ?? metaItem?.greetingMessage ?? '';
+
+				if (botName || botPicture) {
+					currentBot = {
+						name: botName || undefined,
+						picture: botPicture || undefined,
+						bot_role: botRole || undefined,
+						greeting_message: botGreeting || undefined
+					};
+					console.debug('[Chat reactive] Derived currentBot from chatHistory', {
+						name: currentBot?.name,
+						picture: currentBot?.picture
+					});
+				}
+			} catch (e) {
+				console.warn('Failed to derive bot info from chatHistory (reactive)', e);
+			}
+		}
 	}
 
 	// Debug reactive statement to track placeholder visibility
@@ -2828,7 +2948,7 @@
 					bot_name: msg.bot_name,
 					botName: msg.bot_name, // Alternative field name
 					chatbot_name: msg.bot_name, // Alternative field name
-					bot_picture: msg.bot_picture,
+					bot_picture: msg.bot_picture || msg.bot_image,
 					bot_role: msg.bot_role,
 					greeting_message: msg.greeting_message
 				};
