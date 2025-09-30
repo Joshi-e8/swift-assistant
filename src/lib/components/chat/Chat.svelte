@@ -2934,7 +2934,7 @@
 			{/if}
 
 			<PaneGroup direction="horizontal" class="w-full h-full">
-				<Pane defaultSize={50} class="h-full flex relative max-w-full flex-col">
+				<Pane defaultSize={50} class="h-full flex relative max-w-full flex-col min-h-0">
 					<Navbar
 						bind:this={navbarElement}
 						chat={{
@@ -2955,7 +2955,7 @@
 						showBanners={!showCommands}
 					/>
 
-					<div class="flex flex-col flex-auto z-10 w-full @container">
+					<div class="flex flex-col flex-auto z-10 w-full @container min-h-0">
 						{#if $settings?.landingPageMode === 'chat' || createMessagesList(history, history.currentId).length > 0 || (chatHistory && chatHistory.length > 0)}
 							<div
 								class=" pb-2.5 flex flex-col w-full flex-auto overflow-auto min-h-0 max-w-full z-10"
@@ -2967,25 +2967,25 @@
 										messagesContainerElement.clientHeight + 5;
 								}}
 							>
-								<div class=" h-full w-full flex flex-col">
+								<div class="w-full flex flex-col">
 									<!-- Chat Header matching target design -->
-									<div class="flex items-center justify-between py-4 px-6 border-b border-gray-200 bg-white sticky top-0 z-10">
+									<div class="flex items-center justify-between py-4 px-6 border-b border-gray-200 bg-white dark:bg-gray-900 dark:border-gray-700 sticky top-0 z-10">
 										<div class="flex items-center">
 											<!-- Chat Title -->
-											<h1 class="text-lg font-medium text-gray-900">
+											<h1 class="text-lg font-medium text-gray-900 dark:text-gray-100">
 												{computedHeaderTitle || 'Chatbot Name'}
 											</h1>
 										</div>
 
 										<!-- Right side - AI Assistant label -->
-										<div class="text-sm text-gray-500">
+										<div class="text-sm text-gray-500 dark:text-gray-400">
 											AI Assistant
 										</div>
 									</div>
 
 									<!-- Main chat messages -->
 									<Messages
-										className={currentBot && currentBot.name ? 'h-full flex pt-2' : 'h-full flex pt-8'}
+										className={currentBot && currentBot.name ? 'flex pt-2' : 'flex pt-8'}
 										chatId={$chatId}
 										bind:history
 										bind:autoScroll

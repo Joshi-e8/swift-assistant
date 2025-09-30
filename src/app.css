@@ -1,3 +1,4 @@
+/* Main CSS entry point - imports Tailwind and custom styles */
 @import "./tailwind.css";
 
 @font-face {
@@ -339,8 +340,11 @@ input[type='number'] {
 	text-gray-600 from: https://tailwindcss.com/docs/color */
 	color: #676767;
 	pointer-events: none;
-
-	@apply line-clamp-1 absolute;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+	position: absolute;
 }
 
 .tiptap ul[data-type='taskList'] {

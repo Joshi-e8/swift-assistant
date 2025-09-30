@@ -1,0 +1,340 @@
+/* Custom utility classes */
+.outline-hidden {
+	outline: none !important;
+}
+
+.outline-hidden:focus,
+.outline-hidden:focus-visible,
+.outline-hidden:focus-within {
+	outline: none !important;
+}
+
+@font-face {
+	font-family: 'Inter';
+	src: url('/assets/fonts/Inter-Variable.ttf');
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Vazirmatn';
+	src: url('/assets/fonts/Vazirmatn-Variable.ttf');
+	font-display: swap;
+}
+
+html,
+pre {
+	font-family: -apple-system, BlinkMacSystemFont, Inter, Vazirmatn, ui-sans-serif, system-ui,
+		Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif, Helvetica Neue, Arial,
+		Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+}
+
+pre {
+	white-space: pre-wrap;
+}
+
+button {
+	cursor: pointer;
+}
+
+input::placeholder,
+textarea::placeholder {
+	color: var(--color-gray-400, #b4b4b4);
+}
+
+.marked a {
+	text-decoration: underline;
+}
+
+math {
+	display: inline-block;
+}
+
+.hljs {
+	border-radius: 0.5rem;
+}
+
+input::placeholder {
+	color: var(--color-gray-400, #b4b4b4);
+}
+
+textarea::placeholder {
+	color: var(--color-gray-400, #b4b4b4);
+}
+
+.input-prose {
+	@apply prose dark:prose-invert prose-headings:font-semibold prose-hr:my-4 prose-hr:border-gray-100 prose-hr:dark:border-gray-800 prose-p:my-1 prose-img:my-1 prose-headings:my-2 prose-pre:my-0 prose-table:my-1 prose-blockquote:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-0.5 whitespace-pre-line;
+}
+
+.input-prose-sm {
+	@apply prose dark:prose-invert prose-headings:font-medium prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg prose-hr:my-4 prose-hr:border-gray-100 prose-hr:dark:border-gray-800 prose-p:my-1 prose-img:my-1 prose-headings:my-2 prose-pre:my-0 prose-table:my-1 prose-blockquote:my-0 prose-ul:my-1 prose-ol:my-1 prose-li:my-1 whitespace-pre-line text-sm;
+}
+
+.markdown-prose {
+	@apply prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-gray-800 prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-4 prose-hr:border-gray-100 prose-hr:dark:border-gray-800 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
+}
+
+.markdown-prose-sm {
+	@apply text-sm prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-gray-800 prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-2  prose-hr:border-gray-100 prose-hr:dark:border-gray-800 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
+}
+
+.markdown-prose-xs {
+	@apply text-xs prose dark:prose-invert prose-blockquote:border-s-gray-100 prose-blockquote:dark:border-gray-800 prose-blockquote:border-s-2 prose-blockquote:not-italic prose-blockquote:font-normal  prose-headings:font-semibold prose-hr:my-0.5  prose-hr:border-gray-100 prose-hr:dark:border-gray-800 prose-p:my-0 prose-img:my-1 prose-headings:my-1 prose-pre:my-0 prose-table:my-0 prose-blockquote:my-0 prose-ul:-my-0 prose-ol:-my-0 prose-li:-my-0 whitespace-pre-line;
+}
+
+.markdown a {
+	text-decoration: underline;
+}
+
+.font-primary {
+	font-family: -apple-system, BlinkMacSystemFont, Inter, Vazirmatn, ui-sans-serif, system-ui,
+		Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif, Helvetica Neue, Arial,
+		Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji;
+}
+
+.font-mona {
+	font-family: 'Mona Sans';
+}
+
+li p {
+	display: inline;
+}
+
+::-webkit-scrollbar-thumb {
+	--tw-border-opacity: 1;
+	background-color: rgba(215, 215, 215, 0.8);
+	border-color: rgba(255, 255, 255, var(--tw-border-opacity));
+	border-radius: 9999px;
+	border-width: 1px;
+}
+
+/* Dark theme scrollbar styles */
+.dark ::-webkit-scrollbar-thumb {
+	background-color: rgba(67, 67, 67, 0.8); /* Darker color for dark theme */
+	border-color: rgba(0, 0, 0, var(--tw-border-opacity));
+}
+
+::-webkit-scrollbar {
+	height: 0.6rem;
+	width: 0.4rem;
+}
+
+::-webkit-scrollbar-track {
+	background-color: transparent;
+	border-radius: 9999px;
+}
+
+@keyframes smoothFadeIn {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes fadeIn {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fadeOut {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes shake {
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+	10%,
+	30%,
+	50%,
+	70%,
+	90% {
+		transform: translateX(-2px);
+	}
+	20%,
+	40%,
+	60%,
+	80% {
+		transform: translateX(2px);
+	}
+}
+
+.status-description {
+	animation: smoothFadeIn 0.2s forwards;
+}
+
+.katex-mathml {
+	display: none;
+}
+
+.scrollbar-hidden:active::-webkit-scrollbar-thumb,
+.scrollbar-hidden:focus::-webkit-scrollbar-thumb,
+.scrollbar-hidden:hover::-webkit-scrollbar-thumb {
+	visibility: visible;
+}
+.scrollbar-hidden::-webkit-scrollbar-thumb {
+	visibility: hidden;
+}
+
+.scrollbar-hidden::-webkit-scrollbar-corner {
+	display: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+	display: none; /* for Chrome, Safari and Opera */
+}
+
+.scrollbar-none::-webkit-scrollbar-corner {
+	display: none;
+}
+
+.scrollbar-none {
+	-ms-overflow-style: none; /* IE and Edge */
+	scrollbar-width: none; /* Firefox */
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+	/* display: none; <- Crashes Chrome on hover */
+	-webkit-appearance: none;
+	margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type='number'] {
+	-moz-appearance: textfield; /* Firefox */
+}
+
+.katex-display {
+	@apply overflow-y-hidden overflow-x-auto max-w-full;
+}
+
+.katex-display::-webkit-scrollbar {
+	height: 0.4rem;
+	width: 0.4rem;
+}
+
+.katex-display:active::-webkit-scrollbar-thumb,
+.katex-display:focus::-webkit-scrollbar-thumb,
+.katex-display:hover::-webkit-scrollbar-thumb {
+	visibility: visible;
+}
+.katex-display::-webkit-scrollbar-thumb {
+	visibility: hidden;
+}
+
+.katex-display::-webkit-scrollbar-corner {
+	display: none;
+}
+
+.cm-editor {
+	height: 100%;
+	width: 100%;
+}
+
+.cm-scroller:active::-webkit-scrollbar-thumb,
+.cm-scroller:focus::-webkit-scrollbar-thumb,
+.cm-scroller:hover::-webkit-scrollbar-thumb {
+	visibility: visible;
+}
+
+.cm-scroller::-webkit-scrollbar-thumb {
+	visibility: hidden;
+}
+
+.cm-scroller::-webkit-scrollbar-corner {
+	display: none;
+}
+
+.cm-editor.cm-focused {
+	outline: none;
+}
+
+.tippy-box[data-theme~='dark'] {
+	@apply rounded-lg bg-gray-950 text-xs border border-gray-900 shadow-xl;
+}
+
+.password {
+	-webkit-text-security: disc;
+}
+
+.codespan {
+	color: #eb5757;
+	border-width: 0px;
+	padding: 3px 8px;
+	font-size: 0.8em;
+	font-weight: 600;
+	@apply rounded-md dark:bg-gray-800 bg-gray-100 mx-0.5;
+}
+
+.svelte-flow {
+	background-color: transparent !important;
+}
+
+.svelte-flow__edge.animated > path {
+	stroke-width: 2;
+	@apply stroke-gray-600 dark:stroke-gray-500;
+}
+
+.bg-gray-950-90 {
+	background-color: rgba(var(--color-gray-950, #0d0d0d), 0.9);
+}
+
+/* ProseMirror Editor Styles - CRITICAL FOR CHAT INPUT */
+.ProseMirror {
+	@apply h-full min-h-fit max-h-full whitespace-pre-wrap;
+	box-shadow: none;
+	outline: none;
+	border: none;
+}
+
+.ProseMirror > p {
+	box-shadow: none;
+	outline: none;
+	border: none;
+}
+
+.ProseMirror:focus-visible, .ProseMirror:focus-within, .ProseMirror >p:focus-visible {
+	outline: none !important;
+}
+
+.ProseMirror:focus {
+	outline: none;
+}
+
+/* ProseMirror Placeholder - CRITICAL FOR PLACEHOLDER TEXT */
+.ProseMirror p.is-editor-empty:first-child::before {
+	content: attr(data-placeholder);
+	float: left;
+	/* Below color is from tailwind, and has the proper contrast
+	text-gray-600 from: https://tailwindcss.com/docs/color */
+	color: #676767;
+	pointer-events: none;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 1;
+	position: absolute;
+}
+
