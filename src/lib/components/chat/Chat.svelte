@@ -178,10 +178,13 @@
 	let botSuggestionPrompts = [];
 
 	$: if (chatIdProp) {
+		console.log('🔄 chatIdProp changed, calling navigateHandler:', chatIdProp);
 		navigateHandler();
 	}
 
 	const navigateHandler = async () => {
+		console.log('🚀 navigateHandler called with chatIdProp:', chatIdProp);
+		console.log('🔍 Current URL:', $page?.url?.pathname, $page?.url?.search);
 		loading = true;
 
 		// Reset bot context and chat history when navigating to prevent caching from previous chat
@@ -355,8 +358,12 @@
 				await chatTitle.set(currentBot?.name || '');
 				loading = false;
 			} catch (e) {
-				console.warn('ID is neither chat nor chatbot; redirecting home', e);
-				await goto('/');
+				console.warn('⚠️ Failed to load chatbot, treating as new chat instead', e);
+				// Don't redirect - just initialize as a new chat
+				chatTitle.set('New Chat');
+				currentBot = null;
+				botSuggestionPrompts = [];
+				loading = false;
 			}
 		} else if (chatIdProp && isFrontendOnly) {
 			// Frontend-only mode: create a new chat without backend

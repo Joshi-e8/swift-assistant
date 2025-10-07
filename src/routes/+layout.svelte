@@ -351,6 +351,35 @@
 
 	const TOKEN_EXPIRY_BUFFER = 60; // seconds
 	const checkTokenExpiry = async () => {
+		// Check Swift-Teach token expiry from localStorage
+		const tokenExpiryStr = localStorage.getItem('token_expiry');
+
+		if (tokenExpiryStr) {
+			// Swift-Teach token system
+			const tokenExpiry = new Date(tokenExpiryStr);
+			const now = new Date();
+			const bufferMs = TOKEN_EXPIRY_BUFFER * 1000; // Convert to milliseconds
+
+			// Check if token is expired or will expire soon
+			if (now.getTime() >= tokenExpiry.getTime() - bufferMs) {
+				console.warn('⚠️ Swift-Teach token expired - redirecting to backend');
+
+				// Clear all tokens
+				localStorage.removeItem('token');
+				localStorage.removeItem('refresh_token');
+				localStorage.removeItem('token_type');
+				localStorage.removeItem('token_scope');
+				localStorage.removeItem('token_expiry');
+				user.set(null);
+
+				// Redirect to Swift-Teach backend home
+				const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/';
+				window.location.href = `${backendUrl}home/`;
+				return;
+			}
+		}
+
+		// Fallback to original user expiry check (for other auth systems)
 		const exp = $user?.expires_at; // token expiry time in unix timestamp
 		const now = Math.floor(Date.now() / 1000); // current time in unix timestamp
 

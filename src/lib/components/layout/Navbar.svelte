@@ -26,6 +26,7 @@
 	import { stringify } from 'postcss';
 	import PencilSquare from '../icons/PencilSquare.svelte';
 	import Plus from '../icons/Plus.svelte';
+	import Home from '../icons/Home.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -155,6 +156,26 @@
 					>
 						<div class=" m-auto self-center">
 							<PencilSquare className=" size-5" strokeWidth="2" />
+						</div>
+					</button>
+				</Tooltip>
+
+				<Tooltip content={$i18n.t('Back to Home')}>
+					<button
+						id="back-to-home-button"
+						class="flex cursor-pointer px-2 py-2 rounded-xl text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-850 transition"
+						on:click={() => {
+							const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/';
+							console.log('🏠 Back to Home clicked');
+							console.log('🔧 VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+							console.log('🔧 Backend URL:', backendUrl);
+							console.log('🔧 Full redirect URL:', `${backendUrl}home/`);
+							window.location.href = `${backendUrl}home/`;
+						}}
+						aria-label="Back to Home"
+					>
+						<div class=" m-auto self-center">
+							<Home className=" size-5" strokeWidth="2" />
 						</div>
 					</button>
 				</Tooltip>
