@@ -21,6 +21,7 @@
 	import Code from '$lib/components/icons/Code.svelte';
 	import UserGroup from '$lib/components/icons/UserGroup.svelte';
 	import SignOut from '$lib/components/icons/SignOut.svelte';
+	import Home from '$lib/components/icons/Home.svelte';
 
 	const i18n = getContext('i18n');
 
@@ -183,6 +184,25 @@
 			-->
 
 			<hr class=" border-gray-100 dark:border-gray-800 my-1 p-0" />
+
+			<DropdownMenu.Item
+				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+				on:click={() => {
+					// Redirect to Swift-Teach backend home
+					const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/';
+					console.log('🏠 Back to Home clicked (User Menu)');
+					console.log('🔧 VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+					console.log('🔧 Backend URL:', backendUrl);
+					console.log('🔧 Full redirect URL:', `${backendUrl}home/`);
+					window.location.href = `${backendUrl}home/`;
+					show = false;
+				}}
+			>
+				<div class=" self-center mr-3">
+					<Home className="w-5 h-5" strokeWidth="1.5" />
+				</div>
+				<div class=" self-center truncate">{$i18n.t('Back to Home')}</div>
+			</DropdownMenu.Item>
 
 			<DropdownMenu.Item
 				class="flex rounded-md py-1.5 px-3 w-full hover:bg-gray-50 dark:hover:bg-gray-800 transition"

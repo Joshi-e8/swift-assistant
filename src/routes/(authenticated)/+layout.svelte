@@ -135,10 +135,33 @@
 	};
 
 	onMount(async () => {
-		if ($user === undefined) {
-			await goto('/');
+		console.log('🔍 Authenticated layout mounting, current path:', $page.url.pathname);
+		console.log('🔍 Initial user state:', $user);
+
+		// Wait for user to be loaded from parent layout
+		// undefined = not loaded yet, null = logged out, object = logged in
+		let attempts = 0;
+		const maxAttempts = 50; // 5 seconds max wait (50 * 100ms)
+
+		while ($user === undefined && attempts < maxAttempts) {
+			await new Promise(resolve => setTimeout(resolve, 100));
+			attempts++;
+			if (attempts % 10 === 0) {
+				console.log(`⏳ Still waiting for user... (${attempts * 100}ms)`);
+			}
 		}
 
+		console.log('🔍 After waiting, user state:', $user);
+		console.log('🔍 Current path after wait:', $page.url.pathname);
+
+		// If still undefined after waiting, or if explicitly null, redirect to auth
+		if ($user === undefined || $user === null) {
+			console.log('⚠️ User not authenticated, redirecting to auth from:', $page.url.pathname);
+			await goto('/');
+			return;
+		}
+
+		console.log('✅ User authenticated:', $user?.email, 'on path:', $page.url.pathname);
 		loaded = true;
 
 		// Check if we're in frontend-only mode

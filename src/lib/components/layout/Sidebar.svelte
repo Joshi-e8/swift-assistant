@@ -577,11 +577,16 @@
 			</svg>
 		</button>
 
-		<!-- Home -->
+		<!-- Home - Redirect to Swift-Teach Backend -->
 		<button
 			class="p-2 rounded-lg hover:bg-white/10 transition-colors"
 			on:click={() => {
-				goto('/');
+				const backendUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/';
+				console.log('🏠 Back to Home clicked (Sidebar)');
+				console.log('🔧 VITE_API_BASE_URL:', import.meta.env.VITE_API_BASE_URL);
+				console.log('🔧 Backend URL:', backendUrl);
+				console.log('🔧 Full redirect URL:', `${backendUrl}home/`);
+				window.location.href = `${backendUrl}home/`;
 				if ($mobile) {
 					showSidebar.set(false);
 				}
@@ -850,6 +855,8 @@
 								class="w-full flex items-center space-x-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer text-left group"
 								on:click={() => {
 									// Use the guaranteed unique ID and force Chat screen to treat it as a chatbot id
+									console.log('🤖 Clicking chatbot:', chatbot.name, 'ID:', chatbot.id);
+									console.log('🔗 Navigating to:', `/c/${chatbot.id}?bot=1`);
 									goto(`/c/${chatbot.id}?bot=1`);
 									if ($mobile) {
 										showSidebar.set(false);

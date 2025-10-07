@@ -34,6 +34,12 @@
   // Provide i18n context for descendants (MessageInput expects it)
   setContext('i18n', i18n);
 
+  // Autonomous conversation state
+  let isAutonomousRunning = false;
+  let autonomousTurnCount = 0;
+  let maxTurns = 10; // Default turn limit
+  let autonomousIntervalId = null;
+
   // Use simple input in preview for now; avoids global listeners/overlays from MessageInput
   let inputWrapEl;
 
@@ -381,7 +387,353 @@
     messages = [];
   }
 
+  // Dynamic persona message generation using AI
+  let isGeneratingPersonaMessage = false;
+  let useAiGeneration = false; // Toggle for AI-powered generation (disabled by default to save quota)
+
+  async function generatePersonaMessageDynamic(personaKey, conversationContext) {
+    // If AI generation is disabled, use fallback immediately
+    if (!useAiGeneration) {
+      return getFallbackMessage(personaKey, conversationContext);
+    }
+    // Persona characteristics for AI generation
+    const personaCharacteristics = {
+      new_teacher: {
+        role: "a new teacher who is still learning the subject",
+        traits: "enthusiastic, asks clarifying questions, wants to understand before teaching, seeks simple explanations",
+        behavior: "asks basic questions, requests examples, wants step-by-step guidance"
+      },
+      experienced_teacher: {
+        role: "an experienced educator with deep subject knowledge",
+        traits: "analytical, seeks advanced insights, compares methodologies, looks for innovative approaches",
+        behavior: "asks probing questions, seeks depth, challenges assumptions, wants to see different perspectives"
+      },
+      struggling_student: {
+        role: "a student who is having difficulty understanding the material",
+        traits: "confused, needs extra support, requires simpler explanations, easily overwhelmed",
+        behavior: "expresses confusion, asks for help, requests simpler language, needs step-by-step guidance"
+      },
+      average_student: {
+        role: "a typical student with standard learning needs",
+        traits: "curious, engaged, asks standard questions, seeks examples and clarification",
+        behavior: "asks straightforward questions, requests examples, wants to understand concepts clearly"
+      },
+      advanced_student: {
+        role: "a high-achieving student seeking challenges",
+        traits: "quick learner, seeks complexity, wants advanced applications, intellectually curious",
+        behavior: "asks for advanced topics, seeks challenges, wants theoretical depth, looks for connections"
+      },
+      off_task_student: {
+        role: "a student who is distracted or disengaged",
+        traits: "easily bored, questions relevance, seeks entertainment, needs engagement",
+        behavior: "goes off-topic, questions necessity, shows disinterest, needs motivation"
+      }
+    };
+
+    const persona = personaCharacteristics[personaKey] || personaCharacteristics.average_student;
+
+    // Build conversation history for context
+    let conversationHistory = '';
+    if (conversationContext && conversationContext.length > 0) {
+      const recentMessages = conversationContext.slice(-6); // Last 3 exchanges
+      conversationHistory = recentMessages.map(m =>
+        `${m.sender === 'user' ? 'User' : 'Bot'}: ${m.content}`
+      ).join('\n');
+    }
+
+    // Build the prompt for AI to generate persona message
+    const botContext = displayCfg ? `
+Bot Name: ${displayCfg.name || 'Chatbot'}
+Bot Role: ${displayCfg.botRole || 'Assistant'}
+Subject/Topic: ${displayCfg.instructions ? displayCfg.instructions.substring(0, 200) : 'General assistance'}
+Grade Level: ${displayCfg.gradeLevel || 'Not specified'}
+` : '';
+
+    const systemPrompt = `You are simulating ${persona.role} in a conversation with an educational chatbot.
+
+Persona Characteristics:
+- Role: ${persona.role}
+- Traits: ${persona.traits}
+- Behavior: ${persona.behavior}
+
+Bot Context:
+${botContext}
+
+${conversationHistory ? `Recent Conversation:\n${conversationHistory}\n` : 'This is the start of the conversation.\n'}
+
+Generate a single, natural message that this persona would send to the chatbot. The message should:
+1. Be authentic to the persona's characteristics
+2. Be contextually relevant to the conversation (if any)
+3. Be appropriate for the bot's subject matter and grade level
+4. Be concise (1-3 sentences)
+5. Sound like a real person, not scripted
+
+${conversationHistory ? 'Build on the previous conversation naturally.' : 'Start the conversation with an appropriate opening question or statement.'}
+
+Respond with ONLY the message text, nothing else.`;
+
+    try {
+      isGeneratingPersonaMessage = true;
+
+      // Use the chat API to generate persona message
+      const tempChatId = await ensureChat();
+
+      return new Promise((resolve, reject) => {
+        let generatedMessage = '';
+
+        const generationStream = sseStream({
+          chatId: tempChatId,
+          prompt: systemPrompt,
+          onChunk: (data) => {
+            let token = '';
+            try {
+              const parsed = JSON.parse(data);
+              token = parsed?.token ?? '';
+            } catch {
+              token = data;
+            }
+            if (token) {
+              generatedMessage += token;
+            }
+          },
+          onDone: () => {
+            isGeneratingPersonaMessage = false;
+            // Clean up the generated message
+            const cleanMessage = generatedMessage.trim()
+              .replace(/^["']|["']$/g, '') // Remove quotes if present
+              .replace(/^(User:|Student:|Teacher:)\s*/i, ''); // Remove role prefixes
+            resolve(cleanMessage || getFallbackMessage(personaKey, conversationContext));
+          },
+          onError: (err) => {
+            console.error('Error generating persona message:', err);
+            isGeneratingPersonaMessage = false;
+            // Fall back to simple context-aware message
+            resolve(getFallbackMessage(personaKey, conversationContext));
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Error in generatePersonaMessageDynamic:', error);
+      isGeneratingPersonaMessage = false;
+      return getFallbackMessage(personaKey, conversationContext);
+    }
+  }
+
+  // Fallback message generator (simple but context-aware)
+  function getFallbackMessage(personaKey, conversationContext) {
+    const hasHistory = conversationContext && conversationContext.length > 0;
+    const lastBotMessage = hasHistory ? conversationContext[conversationContext.length - 1] : null;
+    const isFollowUp = lastBotMessage && lastBotMessage.sender === 'bot';
+
+    const fallbackMessages = {
+      new_teacher: {
+        initial: [
+          "I'm new to teaching this subject. Can you help me understand the key concepts?",
+          "How would you explain this topic to someone who's just starting to teach it?",
+          "What are the most important things I should know about this subject?"
+        ],
+        followUp: [
+          "Thanks! Can you elaborate on that?",
+          "That's helpful. What else should I know?",
+          "Could you provide more details about that?"
+        ]
+      },
+      experienced_teacher: {
+        initial: [
+          "I've been teaching this for years. What's your approach to this topic?",
+          "How does your method compare to traditional teaching approaches?",
+          "What are some advanced insights on this subject?"
+        ],
+        followUp: [
+          "Interesting approach. Can you provide more depth?",
+          "I see. What about edge cases or advanced applications?",
+          "How would you handle more complex scenarios?"
+        ]
+      },
+      struggling_student: {
+        initial: [
+          "I'm having trouble understanding this. Can you help?",
+          "This is really confusing to me. Where should I start?",
+          "I don't get this at all. Can you explain it simply?"
+        ],
+        followUp: [
+          "I'm still confused. Can you explain it differently?",
+          "Can you show me a step-by-step example?",
+          "I don't understand. Can you make it simpler?"
+        ]
+      },
+      average_student: {
+        initial: [
+          "Can you explain this concept to me?",
+          "I'd like to learn about this topic. Where do we start?",
+          "How does this work?"
+        ],
+        followUp: [
+          "Got it. What's next?",
+          "That makes sense. Can you give another example?",
+          "Okay, can you tell me more about that?"
+        ]
+      },
+      advanced_student: {
+        initial: [
+          "I've mastered the basics. What are the advanced applications?",
+          "Can you challenge me with something complex?",
+          "What are the theoretical implications of this?"
+        ],
+        followUp: [
+          "Understood. What's the next level?",
+          "Can you show me a more complex scenario?",
+          "How does this connect to more advanced topics?"
+        ]
+      },
+      off_task_student: {
+        initial: [
+          "Do we really need to learn this?",
+          "This seems boring. Why is this important?",
+          "Can we talk about something more interesting?"
+        ],
+        followUp: [
+          "Okay, but why does this matter?",
+          "Fine, but can we move on?",
+          "I guess... but is there more to it?"
+        ]
+      }
+    };
+
+    const messages = fallbackMessages[personaKey] || fallbackMessages.average_student;
+    const pool = isFollowUp ? messages.followUp : messages.initial;
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  // Start autonomous conversation
+  async function startAutonomousConversation() {
+    if (!persona || activeTab !== 'ai') {
+      streamError = 'Please select a persona to start autonomous conversation';
+      return;
+    }
+
+    isAutonomousRunning = true;
+    autonomousTurnCount = 0;
+    streamError = null;
+
+    // Send first persona message
+    await sendAutonomousMessage();
+  }
+
+  // Stop autonomous conversation
+  function stopAutonomousConversation() {
+    isAutonomousRunning = false;
+    if (streamRef && typeof streamRef.close === 'function') {
+      try { streamRef.close(); } catch {}
+    }
+  }
+
+  // Send a message in autonomous mode
+  async function sendAutonomousMessage() {
+    if (!isAutonomousRunning || autonomousTurnCount >= maxTurns) {
+      isAutonomousRunning = false;
+      return;
+    }
+
+    try {
+      // Generate persona message dynamically using AI
+      const personaMessage = await generatePersonaMessageDynamic(persona, messages);
+
+      if (!personaMessage || !isAutonomousRunning) {
+        isAutonomousRunning = false;
+        return;
+      }
+
+      // Add user message
+      const userMsg = { id: Date.now().toString(), content: personaMessage, sender: 'user', attachments: [] };
+      messages = [...messages, userMsg];
+      autonomousTurnCount++;
+
+      await ensureChat();
+      // Add placeholder bot message to stream into
+      const botMsg = { id: (Date.now() + 1).toString(), content: '', sender: 'bot' };
+      messages = [...messages, botMsg];
+
+      const personaKey = persona;
+      const usePreviewCfg = currentChatbotId ? undefined : previewConfigWithUIOverrides($chatbotConfig);
+
+      // Start streaming with callback to continue conversation
+      startStreamingWithCallback(personaMessage, personaKey, usePreviewCfg, () => {
+        // After bot response completes, continue if still running
+        if (isAutonomousRunning && autonomousTurnCount < maxTurns) {
+          // Wait a bit before next message for better UX
+          setTimeout(() => {
+            if (isAutonomousRunning) {
+              sendAutonomousMessage();
+            }
+          }, 1500);
+        } else {
+          isAutonomousRunning = false;
+        }
+      });
+    } catch (e) {
+      console.error('Error in sendAutonomousMessage:', e);
+      isAutonomousRunning = false;
+      streamError = 'Failed to generate persona message. Please try again.';
+    }
+  }
+
+  // Modified streaming function with completion callback
+  function startStreamingWithCallback(prompt, personaKey, previewCfg, onComplete) {
+    // Close previous stream if any
+    if (streamRef && typeof streamRef.close === 'function') {
+      try { streamRef.close(); } catch {}
+    }
+    streamError = null;
+
+    streamRef = sseStream({
+      chatId,
+      prompt,
+      persona: personaKey || undefined,
+      previewConfig: previewCfg || undefined,
+      onChunk: (data) => {
+        let token = '';
+        try {
+          const parsed = JSON.parse(data);
+          token = parsed?.token ?? '';
+        } catch {
+          token = data;
+        }
+        if (!token) return;
+        // Append to last bot message
+        const last = messages[messages.length - 1];
+        if (last && last.sender === 'bot') {
+          last.content += token;
+          messages = [...messages.slice(0, -1), last];
+        }
+      },
+      onDone: () => {
+        streamRef = null;
+        if (onComplete) onComplete();
+      },
+      onError: (err) => {
+        try {
+          if (err?.status || err?.statusText) {
+            streamError = `${err.status || ''} ${err.statusText || ''}`.trim();
+          } else if (typeof err === 'string') {
+            streamError = err;
+          } else if (err && typeof err === 'object') {
+            streamError = err.error || err.message || JSON.stringify(err);
+          } else {
+            streamError = 'Streaming error occurred';
+          }
+        } catch {
+          streamError = 'Streaming error occurred';
+        }
+        console.error('Preview stream error', err);
+        streamRef = null;
+        isAutonomousRunning = false;
+      }
+    });
+  }
+
   onDestroy(() => {
+    stopAutonomousConversation();
     if (streamRef && typeof streamRef.close === 'function') {
       try { streamRef.close(); } catch {}
     }
@@ -441,6 +793,60 @@
   }
 </script>
 
+<style>
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+  }
+
+  /* Max Turns Select Hover */
+  .max-turns-select:not(:disabled):hover {
+    border-color: #8B49DE !important;
+  }
+
+  .max-turns-select:not(:disabled):focus {
+    border-color: #8B49DE !important;
+    box-shadow: 0 0 0 3px rgba(139, 73, 222, 0.1);
+  }
+
+  /* Start Button Hover */
+  .btn-start:hover {
+    background: #7A3FCC !important;
+    box-shadow: 0 2px 4px rgba(139, 73, 222, 0.3) !important;
+  }
+
+  .btn-start:active {
+    background: #6B35B8 !important;
+    transform: translateY(1px);
+  }
+
+  /* Stop Button Hover */
+  .btn-stop:hover {
+    background: #DC2626 !important;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3) !important;
+  }
+
+  .btn-stop:active {
+    background: #B91C1C !important;
+    transform: translateY(1px);
+  }
+
+  /* Clear Button Hover */
+  .btn-clear:not(:disabled):hover {
+    background: #F9FAFB !important;
+    border-color: #9CA3AF !important;
+  }
+
+  .btn-clear:not(:disabled):active {
+    background: #F3F4F6 !important;
+    transform: translateY(1px);
+  }
+</style>
+
 <div class="shadow-sm {className}" style="width: 100%; max-width: 560px; height: auto; max-height: 70vh; opacity: 1; border-radius: 20px; border: 1px solid #EBEBEB; background: #FFFFFF;">
   <!-- Chatbot Header -->
   <div class="border-b border-gray-200 px-4 py-3" style="width: 100%; height: 58px; opacity: 1; border-top-left-radius: 19px; border-top-right-radius: 19px; background: linear-gradient(261.37deg, rgba(135, 206, 250, 0.1) 25.1%, rgba(104, 120, 182, 0.1) 76.25%); box-sizing: border-box;">
@@ -475,6 +881,85 @@
 
   <!-- Preview Content -->
   <div style="width: 100%; height: auto; max-height: calc(70vh - 58px); opacity: 1; border-radius: 20px; background: #F9F9F9; padding: 16px; display: flex; flex-direction: column; box-sizing: border-box;">
+    <!-- Autonomous Conversation Controls (AI Persona Test Mode) -->
+    {#if activeTab === 'ai' && persona}
+      <div style="margin-bottom: 12px; padding: 14px; background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border: 1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);" on:click|stopPropagation on:mousedown|stopPropagation>
+        <!-- Header Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+          <div style="font-size: 13px; font-weight: 600; color: #374151; display: flex; align-items: center; gap: 6px;">
+            <svg style="width: 16px; height: 16px; color: #8B49DE;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Autonomous Conversation
+          </div>
+          {#if isAutonomousRunning}
+            <div style="display: flex; align-items: center; gap: 8px; padding: 4px 10px; background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 6px;">
+              <span style="font-size: 11px; font-weight: 600; color: #6B7280;">
+                Progress: {autonomousTurnCount}/{maxTurns}
+              </span>
+              {#if isGeneratingPersonaMessage}
+                <span style="display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 500; color: #8B49DE; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;">
+                  <svg style="width: 12px; height: 12px;" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" />
+                  </svg>
+                  Generating...
+                </span>
+              {/if}
+            </div>
+          {/if}
+        </div>
+
+        <!-- Controls Row -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+          <!-- Left: Turn Selector -->
+          <div style="display: flex; align-items: center; gap: 8px;" on:click|stopPropagation>
+            <label for="max-turns-select" style="font-size: 12px; font-weight: 500; color: #6B7280; white-space: nowrap;">Max Turns:</label>
+            <select id="max-turns-select" bind:value={maxTurns} disabled={isAutonomousRunning}
+              class="max-turns-select"
+              on:click|stopPropagation
+              on:mousedown|stopPropagation
+              style="padding: 6px 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 12px; background: #FFFFFF; cursor: {isAutonomousRunning ? 'not-allowed' : 'pointer'}; transition: border-color 0.2s; outline: none;">
+              <option value={6}>6 turns</option>
+              <option value={8}>8 turns</option>
+              <option value={10}>10 turns</option>
+              <option value={15}>15 turns</option>
+              <option value={20}>20 turns</option>
+            </select>
+          </div>
+
+          <!-- Right: Action Buttons -->
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {#if !isAutonomousRunning}
+              <button on:click={startAutonomousConversation}
+                class="btn-start"
+                style="padding: 8px 16px; background: #8B49DE; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background-color 0.2s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(139, 73, 222, 0.2);">
+                <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Start
+              </button>
+            {:else}
+              <button on:click={stopAutonomousConversation}
+                class="btn-stop"
+                style="padding: 8px 16px; background: #EF4444; color: white; border: none; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background-color 0.2s, box-shadow 0.2s; box-shadow: 0 1px 2px rgba(239, 68, 68, 0.2);">
+                <svg style="width: 14px; height: 14px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                </svg>
+                Stop
+              </button>
+            {/if}
+            <button on:click={clearMessages} disabled={isAutonomousRunning}
+              class="btn-clear"
+              style="padding: 8px 14px; background: #FFFFFF; color: #6B7280; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: {isAutonomousRunning ? 'not-allowed' : 'pointer'}; opacity: {isAutonomousRunning ? '0.5' : '1'}; transition: background-color 0.2s;">
+              Clear
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
+
     <!-- Messages Area -->
     <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px;">
       {#if streamError}
@@ -485,19 +970,27 @@
       {#if messages.length === 0}
         <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;">
           <h3 style="font-size: 24px; font-weight: 600; color: #6B7280; margin-bottom: 8px; text-align: center;">Test your bot</h3>
-          <p style="font-size: 14px; color: #9CA3AF; text-align: center;">Start a conversation to test your bot</p>
-          <div class="mx-auto w-full max-w-2xl font-primary mt-3">
-            <div class="mx-2">
-              <Suggestions
-                suggestionPrompts={startersToSuggestions((displayCfg?.conversationStarters) || [])}
-                inputValue={message}
-                onSelect={({ data }) => {
-                  message = data;
+          <p style="font-size: 14px; color: #9CA3AF; text-align: center;">
+            {#if activeTab === 'ai' && persona}
+              Select max turns and click Start to begin autonomous conversation
+            {:else}
+              Start a conversation to test your bot
+            {/if}
+          </p>
+          {#if activeTab !== 'ai' || !persona}
+            <div class="mx-auto w-full max-w-2xl font-primary mt-3">
+              <div class="mx-2">
+                <Suggestions
+                  suggestionPrompts={startersToSuggestions((displayCfg?.conversationStarters) || [])}
+                  inputValue={message}
+                  onSelect={({ data }) => {
+                    message = data;
 
-                }}
-              />
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          {/if}
         </div>
       {:else}
         {#each messages as m}
@@ -593,77 +1086,80 @@
 
 
     <!-- Message Input (ported from chat) -->
-    <div class="pb-2" bind:this={inputWrapEl} style="background: #F9F9F9; padding-top: 6px;">
-      <div style="position: relative; display: flex; gap: 8px; align-items: center; margin-top: 6px;">
-        <!-- Plus button opens capability dropdown, similar to chat screen -->
-        <button
-          type="button"
-          aria-label="Open capabilities"
-          bind:this={menuBtnEl}
-          on:click|stopPropagation={() => (showCapMenu = !showCapMenu)}
-          style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:999px; border:1px solid #E5E7EB; background:#FFFFFF; color:#374151;"
-        >
-          <Plus class="w-4 h-4" />
-        </button>
-
-        <!-- Text input -->
-        <input
-          id="live-preview-input"
-          type="text"
-          placeholder="Type your message..."
-          style="flex: 1; padding: 12px 16px; border: 1px solid #E5E7EB; border-radius: 24px; background: #FFFFFF; font-size: 14px; outline: none;"
-          bind:value={message}
-          on:keypress={(e) => e.key === 'Enter' && sendMessage(message)}
-        />
-
-        <!-- Send button -->
-        <button
-          on:click={() => sendMessage(message)}
-          style="padding: 12px 20px; background: #6878B6; color: white; border: none; border-radius: 24px; font-size: 14px; font-weight: 500; cursor: pointer;"
-        >
-          Send
-        </button>
-
-        <!-- ChatGPT-like dropdown menu -->
-        {#if showCapMenu}
-          <div
-            bind:this={menuEl}
-            style="position:absolute; bottom: 46px; left: 0; background:#FFFFFF; border:1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 8px; min-width: 260px; z-index: 10;"
-            role="menu"
-            aria-label="Composer actions"
+    {#if activeTab !== 'ai' || !isAutonomousRunning}
+      <div class="pb-2" bind:this={inputWrapEl} style="background: #F9F9F9; padding-top: 6px;">
+        <div style="position: relative; display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+          <!-- Plus button opens capability dropdown, similar to chat screen -->
+          <button
+            type="button"
+            aria-label="Open capabilities"
+            bind:this={menuBtnEl}
+            on:click|stopPropagation={() => (showCapMenu = !showCapMenu)}
+            style="display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border-radius:999px; border:1px solid #E5E7EB; background:#FFFFFF; color:#374151;"
           >
-            <!-- Hidden file input for uploads -->
-            <input bind:this={fileInputEl} type="file" multiple style="display:none" on:change={onFilesSelected} />
+            <Plus class="w-4 h-4" />
+          </button>
 
-            <div style="font-size:11px; letter-spacing:0.02em; color:#6B7280; padding:6px 8px; text-transform:uppercase;">Quick actions</div>
-            <button type="button" on:click|stopPropagation={openFilePicker}
-              style="width:100%; display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; background:#FFFFFF; color:#111827; border:none; text-align:left;">
-              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getCapIconPath('fileUpload')} />
-              </svg>
-              <span style="font-size:13px;">Upload files</span>
-            </button>
+          <!-- Text input -->
+          <input
+            id="live-preview-input"
+            type="text"
+            placeholder="Type your message..."
+            style="flex: 1; padding: 12px 16px; border: 1px solid #E5E7EB; border-radius: 24px; background: #FFFFFF; font-size: 14px; outline: none;"
+            bind:value={message}
+            on:keypress={(e) => e.key === 'Enter' && sendMessage(message)}
+          />
 
-            <div style="height:8px;"></div>
-            <div style="font-size:11px; letter-spacing:0.02em; color:#6B7280; padding:6px 8px; text-transform:uppercase;">Capabilities</div>
+          <!-- Send button -->
+          <button
+            on:click={() => sendMessage(message)}
+            style="padding: 12px 20px; background: #6878B6; color: white; border: none; border-radius: 24px; font-size: 14px; font-weight: 500; cursor: pointer;"
+          >
+            Send
+          </button>
 
-            <div style="max-height: 260px; overflow:auto; padding:2px 0;">
-              {#each CAP_TOGGLE_KEYS as key}
-                <label style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; background:#FFFFFF; color:#111827;">
-                  <span style="display:flex; align-items:center; gap:10px;">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getCapIconPath(key)} />
-                    </svg>
-                    <span style="font-size:13px;">{CAP_LABELS[key] || key}</span>
-                  </span>
-                  <input type="checkbox" checked={isCapActive(key)} on:change|stopPropagation={() => toggleCap(key)} />
-                </label>
-              {/each}
+          <!-- ChatGPT-like dropdown menu -->
+          {#if showCapMenu}
+            <div
+              bind:this={menuEl}
+              style="position:absolute; bottom: 46px; left: 0; background:#FFFFFF; border:1px solid #E5E7EB; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); padding: 8px; min-width: 260px; z-index: 10;"
+              role="menu"
+              aria-label="Composer actions"
+            >
+              <!-- Hidden file input for uploads -->
+              <input bind:this={fileInputEl} type="file" multiple style="display:none" on:change={onFilesSelected} />
+
+              <div style="font-size:11px; letter-spacing:0.02em; color:#6B7280; padding:6px 8px; text-transform:uppercase;">Quick actions</div>
+              <button type="button" on:click|stopPropagation={openFilePicker}
+                style="width:100%; display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; background:#FFFFFF; color:#111827; border:none; text-align:left;">
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getCapIconPath('fileUpload')} />
+                </svg>
+                <span style="font-size:13px;">Upload files</span>
+              </button>
+
+              <div style="height:8px;"></div>
+              <div style="font-size:11px; letter-spacing:0.02em; color:#6B7280; padding:6px 8px; text-transform:uppercase;">Capabilities</div>
+
+              <div style="max-height: 260px; overflow:auto; padding:2px 0;">
+                {#each CAP_TOGGLE_KEYS as key}
+                  <label style="width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 10px; border-radius:8px; cursor:pointer; background:#FFFFFF; color:#111827;">
+                    <span style="display:flex; align-items:center; gap:10px;">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={getCapIconPath(key)} />
+                      </svg>
+                      <span style="font-size:13px;">{CAP_LABELS[key] || key}</span>
+                    </span>
+                    <input type="checkbox" checked={isCapActive(key)} on:change|stopPropagation={() => toggleCap(key)} />
+                  </label>
+                {/each}
+              </div>
             </div>
-          </div>
-        {/if}
-      </div>
+          {/if}
+        </div>
 
-    </div>
+      </div>
+    {/if}
+
   </div>
 </div>
