@@ -491,6 +491,160 @@ export async function getChatbot(id) {
 }
 
 /**
+ * Update an existing chatbot
+ * @param {string|number} id - Chatbot ID (can be numeric ID or UUID)
+ * @param {Object} chatbotData - The chatbot configuration data to update
+ * @param {Object} options - Optional configuration for notifications
+ * @param {boolean} options.showAlerts - Whether to show alert boxes (default: true)
+ * @param {boolean} options.partial - Whether to do a partial update (PATCH) or full update (PUT) (default: true)
+ * @returns {Promise<Object>} Updated chatbot response
+ */
+export async function updateChatbot(id, chatbotData, options = { showAlerts: true, partial: true }) {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    const url = `${apiBaseUrl}/v1/chatbots/${encodeURIComponent(id)}/chatbot-edit/`;
+
+    console.log('Updating chatbot at:', url);
+    console.log('Chatbot data:', chatbotData);
+
+    // Check for picture type (for file conversion)
+    const pictureIsFile = chatbotData.picture instanceof File;
+    const pictureIsDataUrl = typeof chatbotData.picture === 'string' && chatbotData.picture.startsWith('data:');
+
+    // Determine HTTP method (PATCH for partial, PUT for full update)
+    const method = options.partial ? 'PATCH' : 'PUT';
+
+    // Always use FormData (same as create)
+    const formData = new FormData();
+
+    // Add all non-file data as individual form fields (Django REST Framework format)
+    if (chatbotData.name !== undefined) formData.append('name', chatbotData.name || '');
+    if (chatbotData.description !== undefined) formData.append('description', chatbotData.description || '');
+    if (chatbotData.curriculum_info !== undefined) formData.append('curriculum_info', chatbotData.curriculum_info || '');
+    if (chatbotData.select_from_curriculum !== undefined) formData.append('select_from_curriculum', chatbotData.select_from_curriculum ? '1' : '0');
+    if (chatbotData.grade_level !== undefined) formData.append('grade_level', chatbotData.grade_level || '');
+    if (chatbotData.bot_role !== undefined) formData.append('bot_role', chatbotData.bot_role || '');
+    if (chatbotData.instructions !== undefined) formData.append('instructions', chatbotData.instructions || '');
+    if (chatbotData.greeting_message !== undefined) formData.append('greeting_message', chatbotData.greeting_message || '');
+    if (chatbotData.primary_language_id !== undefined) formData.append('primary_language_id', chatbotData.primary_language_id || '');
+    if (chatbotData.grading_rubric !== undefined) formData.append('grading_rubric', chatbotData.grading_rubric || '');
+    if (chatbotData.real_time_web_search !== undefined) formData.append('real_time_web_search', chatbotData.real_time_web_search ? '1' : '0');
+    if (chatbotData.file_upload_analysis !== undefined) formData.append('file_upload_analysis', chatbotData.file_upload_analysis ? '1' : '0');
+    if (chatbotData.image_upload_gpt_vision !== undefined) formData.append('image_upload_gpt_vision', chatbotData.image_upload_gpt_vision ? '1' : '0');
+    if (chatbotData.create_images !== undefined) formData.append('create_images', chatbotData.create_images ? '1' : '0');
+    if (chatbotData.drawing_tools !== undefined) formData.append('drawing_tools', chatbotData.drawing_tools ? '1' : '0');
+    if (chatbotData.canvas_edit_modify !== undefined) formData.append('canvas_edit_modify', chatbotData.canvas_edit_modify ? '1' : '0');
+    if (chatbotData.pause_session !== undefined) formData.append('pause_session', chatbotData.pause_session ? '1' : '0');
+
+    // Add secondary language IDs
+    if (chatbotData.secondary_language_ids !== undefined) {
+      if (chatbotData.secondary_language_ids && chatbotData.secondary_language_ids.length > 0) {
+        chatbotData.secondary_language_ids.forEach((langId, index) => {
+          formData.append(`secondary_language_ids[${index}]`, langId);
+        });
+      }
+    }
+
+    // Add conversation starters (only non-empty)
+    if (chatbotData.conversation_starters !== undefined) {
+      if (Array.isArray(chatbotData.conversation_starters)) {
+        const validStarters = chatbotData.conversation_starters
+          .map((s) => (typeof s === 'string' ? s : (s?.text ?? '')))
+          .map((s) => (typeof s === 'string' ? s.trim() : ''))
+          .filter((s) => s.length > 0);
+        validStarters.forEach((text, index) => {
+          formData.append(`conversation_starters[${index}].text`, text);
+        });
+      }
+    }
+
+    // Add analysis scales (only those with level_name and color)
+    if (chatbotData.analysis_scales !== undefined) {
+      if (Array.isArray(chatbotData.analysis_scales)) {
+        const validScales = chatbotData.analysis_scales.filter(
+          (s) => typeof s?.level_name === 'string' && s.level_name.trim() && typeof s?.color === 'string' && s.color.trim()
+        );
+        validScales.forEach((scale, index) => {
+          formData.append(`analysis_scales[${index}].level_name`, scale.level_name.trim());
+          formData.append(`analysis_scales[${index}].description`, (scale.description ?? '').toString());
+          formData.append(`analysis_scales[${index}].color`, scale.color.trim());
+        });
+      }
+    }
+
+    // Add files (only real File instances)
+    if (chatbotData.chatbot_files !== undefined) {
+      if (Array.isArray(chatbotData.chatbot_files)) {
+        chatbotData.chatbot_files.forEach((file, index) => {
+          if (file instanceof File && file.size > 0) {
+            formData.append(`chatbot_files[${index}].file`, file);
+          }
+        });
+      }
+    }
+
+    // Add picture if provided
+    if (pictureIsFile) {
+      formData.append('picture', chatbotData.picture);
+    } else if (pictureIsDataUrl) {
+      try {
+        const blob = dataURLtoBlob(chatbotData.picture);
+        const ext = (blob.type.split('/')[1] || 'png');
+        const file = new File([blob], `avatar.${ext}`, { type: blob.type });
+        formData.append('picture', file);
+      } catch (e) {
+        console.warn('Failed to convert data URL picture to file', e);
+      }
+    }
+
+    const response = await fetch(url, {
+      method: method,
+      body: formData,
+      mode: 'cors',
+      credentials: 'omit'
+    });
+
+    const result = await response.json();
+    console.log('Response:', result);
+
+    if (!response.ok) {
+      const errPayload = {
+        message: result?.message || 'HTTP error',
+        status: response.status,
+        errors: result?.errors || result
+      };
+      throw new Error(JSON.stringify(errPayload));
+    }
+
+    // Show success notification
+    if (options.showAlerts) {
+      showNotification('Chatbot updated successfully!', 'success');
+    }
+
+    // Refresh the sidebar chatbots list
+    if (typeof window !== 'undefined' && window.refreshSidebarChatbots) {
+      try {
+        await window.refreshSidebarChatbots();
+      } catch (error) {
+        console.warn('Failed to refresh sidebar chatbots:', error);
+      }
+    }
+
+    return result;
+
+  } catch (error) {
+    console.error('Error updating chatbot:', error);
+
+    // Show error alert for network or other errors if enabled
+    if (options.showAlerts && !error.message.includes('HTTP error!')) {
+      showNotification(`Error updating chatbot: ${error.message}`, 'error');
+    }
+
+    throw error;
+  }
+}
+
+/**
  * Delete a chatbot by ID
  * @param {string|number} id - Chatbot ID
  * @returns {Promise<Object>} Delete response

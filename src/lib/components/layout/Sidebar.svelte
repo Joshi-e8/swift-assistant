@@ -851,42 +851,54 @@
 				{:else}
 					<div class="space-y-1 max-h-52 overflow-y-auto px-1">
 						{#each chatbots as chatbot (chatbot.id)}
-							<button
-								class="w-full flex items-center space-x-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer text-left group"
-								on:click={() => {
-									// Use the guaranteed unique ID and force Chat screen to treat it as a chatbot id
-									console.log('🤖 Clicking chatbot:', chatbot.name, 'ID:', chatbot.id);
-									console.log('🔗 Navigating to:', `/c/${chatbot.id}?bot=1`);
-									goto(`/c/${chatbot.id}?bot=1`);
-									if ($mobile) {
-										showSidebar.set(false);
-									}
-								}}
-								title="Chat with {chatbot.name}"
-							>
-								{#if chatbot.picture}
-									<img src={chatbot.picture} alt="{chatbot.name} avatar" class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
-								{:else}
-									<div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
-										<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
-										</svg>
-									</div>
-								{/if}
-								<div class="flex-1 min-w-0">
-									<p class="text-sm font-medium text-gray-700 truncate group-hover:text-gray-900">{chatbot.name}</p>
-									{#if chatbot.bot_role}
-										<p class="text-xs text-gray-500 truncate">{chatbot.bot_role}</p>
+							<div class="relative group/item">
+								<button
+									class="w-full flex items-center space-x-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer text-left group"
+									on:click={() => {
+										// Use the guaranteed unique ID and force Chat screen to treat it as a chatbot id
+										console.log('🤖 Clicking chatbot:', chatbot.name, 'ID:', chatbot.id);
+										console.log('🔗 Navigating to:', `/c/${chatbot.id}?bot=1`);
+										goto(`/c/${chatbot.id}?bot=1`);
+										if ($mobile) {
+											showSidebar.set(false);
+										}
+									}}
+									title="Chat with {chatbot.name}"
+								>
+									{#if chatbot.picture}
+										<img src={chatbot.picture} alt="{chatbot.name} avatar" class="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+									{:else}
+										<div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center flex-shrink-0">
+											<svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.959 8.959 0 01-4.906-1.476L3 21l2.476-5.094A8.959 8.959 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z" />
+											</svg>
+										</div>
 									{/if}
-								</div>
-								{#if chatbot.primary_language}
-									<div class="flex-shrink-0">
-										<span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-100 text-blue-700">
-											{chatbot.primary_language.name.slice(0, 2).toUpperCase()}
-										</span>
+									<div class="flex-1 min-w-0">
+										<p class="text-sm font-medium text-gray-700 truncate group-hover:text-gray-900">{chatbot.name}</p>
+										{#if chatbot.bot_role}
+											<p class="text-xs text-gray-500 truncate">{chatbot.bot_role}</p>
+										{/if}
 									</div>
-								{/if}
-							</button>
+								</button>
+
+								<!-- Edit Button (appears on hover) -->
+								<button
+									class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover/item:opacity-100 transition-opacity p-1.5 rounded-lg bg-white hover:bg-blue-50 border border-gray-200 shadow-sm"
+									on:click|stopPropagation={() => {
+										console.log('✏️ Editing chatbot:', chatbot.name, 'ID:', chatbot.id);
+										goto(`/chatbot/edit/${chatbot.id}`);
+										if ($mobile) {
+											showSidebar.set(false);
+										}
+									}}
+									title="Edit {chatbot.name}"
+								>
+									<svg class="w-3.5 h-3.5 text-gray-600 hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+									</svg>
+								</button>
+							</div>
 						{/each}
 					</div>
 
@@ -895,7 +907,7 @@
 							<button
 								class="text-sm text-blue-600 hover:text-blue-800 transition-colors font-medium px-3 py-2 rounded-lg hover:bg-blue-50"
 								on:click={() => {
-									goto('/c/new');
+									goto('/my-chatbots');
 									if ($mobile) {
 										showSidebar.set(false);
 									}

@@ -1034,30 +1034,6 @@ Create engaging, age-appropriate content that aligns with educational best pract
         </div>
       </div>
     {/if}
-
-    <!-- Testing Section (show after bot is created) -->
-    {#if $chatbotConfig.id && parsedConfig}
-      <div class="border-t border-gray-200 p-6">
-        <div class="mb-4">
-          <h4 class="text-lg font-semibold text-gray-900 mb-2 flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Test Your AI Bot
-          </h4>
-          <p class="text-sm text-gray-600">Your bot has been created! Test it now to ensure it works as expected.</p>
-        </div>
-
-        <!-- Import and use the testing panel -->
-        {#await import('./BotTestingPanel.svelte') then { default: BotTestingPanel }}
-          <BotTestingPanel botId={String($chatbotConfig.id)} className="border-0" />
-        {:catch}
-          <div class="text-center py-8">
-            <p class="text-gray-500">Testing panel could not be loaded</p>
-          </div>
-        {/await}
-      </div>
-    {/if}
   </div>
 </div>
 
