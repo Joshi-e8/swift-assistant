@@ -33,6 +33,30 @@ const getApiBaseUrl = () => {
 };
 
 /**
+ * Get authentication token from localStorage
+ * @returns {string|null} The authentication token or null if not found
+ */
+const getAuthToken = () => {
+  if (!browser) return null;
+  return localStorage.getItem('token');
+};
+
+/**
+ * Get authentication headers
+ * @returns {Object} Headers object with Authorization if token exists
+ */
+const getAuthHeaders = () => {
+  const token = getAuthToken();
+  const headers = {};
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return headers;
+};
+
+/**
  * Create a new chatbot
  * @param {Object} chatbotData - The chatbot configuration data
  * @param {Object} options - Optional configuration for notifications
@@ -132,6 +156,7 @@ export async function createChatbot(chatbotData, options = { showAlerts: true })
 
       const response = await fetch(url, {
         method: 'POST',
+        headers: getAuthHeaders(),
         body: formData,
         mode: 'cors',
         credentials: 'omit'
@@ -196,6 +221,7 @@ export async function createChatbot(chatbotData, options = { showAlerts: true })
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders()
         },
         body: JSON.stringify(jsonPayload),
         mode: 'cors',
@@ -405,6 +431,7 @@ export async function getChatbots(params = {}) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       mode: 'cors',
       credentials: 'omit'
@@ -441,6 +468,7 @@ export async function getChatbot(id) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       mode: 'cors',
       credentials: 'omit'
@@ -599,6 +627,7 @@ export async function updateChatbot(id, chatbotData, options = { showAlerts: tru
 
     const response = await fetch(url, {
       method: method,
+      headers: getAuthHeaders(),
       body: formData,
       mode: 'cors',
       credentials: 'omit'
@@ -660,6 +689,7 @@ export async function deleteChatbot(id) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders()
       },
       mode: 'cors',
       credentials: 'omit'
