@@ -41,7 +41,40 @@ export function streamChatMessage({
       });
 
       if (!res.ok || !res.body) {
-        const err = { status: res.status, statusText: res.statusText };
+        // Try to extract error message from response body
+        let errorMessage = res.statusText || 'Request failed';
+        let errorData: any = null;
+
+        try {
+          const errorText = await res.text();
+          console.error('❌ Stream start error response:', errorText);
+
+          try {
+            errorData = JSON.parse(errorText);
+            console.log('📋 Parsed error data:', errorData);
+
+            // Extract the error message from the API response
+            if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.error) {
+              errorMessage = errorData.error;
+            } else if (errorData.detail) {
+              errorMessage = errorData.detail;
+            }
+          } catch (parseError) {
+            // If not JSON, use the text as-is
+            errorMessage = errorText || errorMessage;
+          }
+        } catch (textError) {
+          console.error('❌ Failed to read error response:', textError);
+        }
+
+        const err: any = new Error(errorMessage);
+        err.status = res.status;
+        err.statusText = res.statusText;
+        err.errorData = errorData;
+        err.errorCode = errorData?.error;
+
         console.error('❌ Stream start error:', err);
         onError?.(err);
         return;

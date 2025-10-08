@@ -1879,11 +1879,6 @@
 			const response = await sendChatMessage($chatId, effectivePrompt);
 
 			console.log('📥 Raw API response:', response);
-
-			if (!response) {
-				throw new Error('Failed to get response from API - response is null/undefined. Check console for detailed error logs.');
-			}
-
 			console.log('📥 Chat API response:', response);
 
 			// Parse the response based on your API's format
@@ -1919,15 +1914,37 @@
 		} catch (error) {
 			console.error('❌ Error calling custom API:', error);
 
-			// Update response message with error
+			// Extract error message from the error object
+			let errorMessage = 'An unexpected error occurred';
+			let userFriendlyMessage = errorMessage;
+
+			if (error?.message) {
+				errorMessage = error.message;
+				userFriendlyMessage = errorMessage;
+			}
+
+			// Check for specific error codes and provide user-friendly messages
+			if (error?.errorCode === 'PLAN_OR_TOKEN_REQUIRED' || error?.status === 403) {
+				// Token insufficiency error - provide actionable message
+				userFriendlyMessage = "You've run out of tokens. Please upgrade your plan or purchase more tokens to continue chatting.";
+			} else if (error?.status === 401) {
+				userFriendlyMessage = 'Authentication failed. Please log in again.';
+			} else if (error?.status === 429) {
+				userFriendlyMessage = 'Rate limit exceeded. Please try again later.';
+			} else if (error?.status >= 500) {
+				userFriendlyMessage = 'Server error. Please try again later.';
+			}
+
+			// Remove the assistant's response message from chat history
+			// This prevents error messages from appearing in the conversation
 			if (history.messages[history.currentId]) {
-				history.messages[history.currentId].content = `Error: ${error.message}`;
-				history.messages[history.currentId].done = true;
-				history.messages[history.currentId].error = true;
+				delete history.messages[history.currentId];
+				history.currentId = history.messages[history.currentId]?.parentId || history.currentId;
 				history = history;
 			}
 
-			toast.error(`Failed to get response: ${error.message}`);
+			// Show toast notification with the user-friendly message
+			toast.error(userFriendlyMessage);
 		}
 	};
 
@@ -2139,36 +2156,74 @@
 				},
 				onError: (error) => {
 					console.error('❌ Streaming error:', error);
-					// Handle error
-					responseMessage.content = `Error: ${error.message}`;
-					responseMessage.error = { content: error.message };
-					responseMessage.done = true;
-					responseMessage.streaming = false;
-					history.messages[responseMessageId] = responseMessage;
-					history = history;
 
-					// Scroll to bottom on error
-					setTimeout(() => {
-						if (autoScroll) {
-							scrollToBottom();
-						}
-					}, 100);
+					// Extract error message from the error object
+					let errorMessage = 'An unexpected error occurred';
+					let userFriendlyMessage = errorMessage;
+
+					if (error?.message) {
+						errorMessage = error.message;
+						userFriendlyMessage = errorMessage;
+					}
+
+					// Check for specific error codes and provide user-friendly messages
+					if (error?.errorCode === 'PLAN_OR_TOKEN_REQUIRED' || error?.status === 403) {
+						// Token insufficiency error - provide actionable message
+						userFriendlyMessage = "You've run out of tokens. Please upgrade your plan or purchase more tokens to continue chatting.";
+					} else if (error?.status === 401) {
+						userFriendlyMessage = 'Authentication failed. Please log in again.';
+					} else if (error?.status === 429) {
+						userFriendlyMessage = 'Rate limit exceeded. Please try again later.';
+					} else if (error?.status >= 500) {
+						userFriendlyMessage = 'Server error. Please try again later.';
+					}
+
+					// Remove the assistant's response message from chat history
+					// This prevents error messages from appearing in the conversation
+					if (history.messages[responseMessageId]) {
+						delete history.messages[responseMessageId];
+						history = history;
+					}
+
+					// Show toast notification
+					toast.error(userFriendlyMessage);
 				}
 			});
 
 		} catch (error) {
 			console.error('❌ Error setting up streaming:', error);
 
-			// Update response message with error
+			// Extract error message from the error object
+			let errorMessage = 'An unexpected error occurred';
+			let userFriendlyMessage = errorMessage;
+
+			if (error?.message) {
+				errorMessage = error.message;
+				userFriendlyMessage = errorMessage;
+			}
+
+			// Check for specific error codes and provide user-friendly messages
+			if (error?.errorCode === 'PLAN_OR_TOKEN_REQUIRED' || error?.status === 403) {
+				// Token insufficiency error - provide actionable message
+				userFriendlyMessage = "You've run out of tokens. Please upgrade your plan or purchase more tokens to continue chatting.";
+			} else if (error?.status === 401) {
+				userFriendlyMessage = 'Authentication failed. Please log in again.';
+			} else if (error?.status === 429) {
+				userFriendlyMessage = 'Rate limit exceeded. Please try again later.';
+			} else if (error?.status >= 500) {
+				userFriendlyMessage = 'Server error. Please try again later.';
+			}
+
+			// Remove the assistant's response message from chat history
+			// This prevents error messages from appearing in the conversation
 			if (history.messages[history.currentId]) {
-				history.messages[history.currentId].content = `Error: ${error.message}`;
-				history.messages[history.currentId].done = true;
-				history.messages[history.currentId].error = true;
-				history.messages[history.currentId].streaming = false;
+				delete history.messages[history.currentId];
+				history.currentId = history.messages[history.currentId]?.parentId || history.currentId;
 				history = history;
 			}
 
-			toast.error(`Failed to get response: ${error.message}`);
+			// Show toast notification with the user-friendly message
+			toast.error(userFriendlyMessage);
 		}
 	};
 

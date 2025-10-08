@@ -1050,8 +1050,6 @@ export const createChatViaAPI = async (token: string, chatbotIdentifier?: string
 };
 
 export const sendChatMessage = async (chatId: string, prompt: string) => {
-    let error = null;
-
     try {
         console.log('🔄 sendChatMessage called with:', { chatId, prompt: prompt.substring(0, 50) + '...' });
 
@@ -1088,9 +1086,41 @@ export const sendChatMessage = async (chatId: string, prompt: string) => {
         console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ HTTP error response:', errorText);
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            let errorMessage = `HTTP error! status: ${response.status}`;
+            let errorData = null;
+
+            try {
+                // Try to parse as JSON first to get structured error
+                const errorText = await response.text();
+                console.error('❌ HTTP error response:', errorText);
+
+                try {
+                    errorData = JSON.parse(errorText);
+                    console.log('📋 Parsed error data:', errorData);
+
+                    // Extract the error message from the API response
+                    if (errorData.message) {
+                        errorMessage = errorData.message;
+                    } else if (errorData.error) {
+                        errorMessage = errorData.error;
+                    } else if (errorData.detail) {
+                        errorMessage = errorData.detail;
+                    }
+                } catch (parseError) {
+                    // If not JSON, use the text as-is
+                    errorMessage = errorText || errorMessage;
+                }
+            } catch (textError) {
+                console.error('❌ Failed to read error response:', textError);
+            }
+
+            // Create a custom error with the API error data
+            const error: any = new Error(errorMessage);
+            error.status = response.status;
+            error.errorData = errorData;
+            error.errorCode = errorData?.error;
+
+            throw error;
         }
 
         // Check if response is streaming (SSE format)
@@ -1139,16 +1169,20 @@ export const sendChatMessage = async (chatId: string, prompt: string) => {
             return result;
         }
         
-    } catch (err) {
-        error = err;
+    } catch (err: any) {
         console.error('❌ Error sending chat message:', err);
         console.error('❌ Error details:', {
             message: err.message,
             stack: err.stack,
+            status: err.status,
+            errorCode: err.errorCode,
+            errorData: err.errorData,
             chatId,
             apiBaseUrl: import.meta.env.VITE_API_BASE_URL
         });
-        return null;
+
+        // Re-throw the error so the caller can handle it properly
+        throw err;
     }
 };
 
