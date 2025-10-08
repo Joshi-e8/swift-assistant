@@ -302,7 +302,7 @@
 					if (!currentBot) {
 						try {
 							const fetchedBot = await getChatbot(chatIdProp);
-							currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+							currentBot = fetchedBot?.records ?? fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
 						{
 							const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
 							if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
@@ -341,7 +341,7 @@
 			try {
 				const fetchedBot = await getChatbot(chatIdProp);
 				// Normalize various API response shapes
-				currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+				currentBot = fetchedBot?.records ?? fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
 				{
 					console.debug('[Chat.navigate] currentBot from fetched (chatbot id mode)', { name: currentBot?.name, picture: currentBot?.picture });
 
@@ -382,7 +382,7 @@
 				// Best-effort: in frontend-only mode, still load chatbot info for header/suggestions
 				try {
 					const fetchedBot = await getChatbot(chatIdProp);
-					currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+					currentBot = fetchedBot?.records ?? fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
 					let startersRaw = currentBot?.conversation_starters ?? currentBot?.conversationStarters ?? [];
 					if (!Array.isArray(startersRaw)) startersRaw = [];
 					botSuggestionPrompts = startersRaw.map((s) => ({ content: typeof s === 'string' ? s : (s?.text ?? '') })).filter(p => p.content);
@@ -1084,7 +1084,7 @@
 					const botId = chatbotParam || botIdParam;
 					if (botId) {
 						const fetchedBot = await getChatbot(botId);
-						currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+						currentBot = fetchedBot?.records ?? fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
 						{
 							const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
 							if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };
@@ -1795,7 +1795,7 @@
 							try {
 								if (!currentBot) {
 									const fetchedBot = await getChatbot(routeId).catch(() => null);
-									currentBot = fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
+									currentBot = fetchedBot?.records ?? fetchedBot?.data ?? fetchedBot?.response ?? fetchedBot?.result ?? fetchedBot;
 									{
 										const normalizedPicture = currentBot?.picture || currentBot?.bot_picture || currentBot?.bot_image || currentBot?.image || currentBot?.chatbot_picture || currentBot?.chatbot_image || '';
 										if (normalizedPicture) currentBot = { ...currentBot, picture: normalizedPicture };

@@ -1,6 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
-  import { chatbotConfig, activeSection, buildMethod, isLoading, errors, isDirty, updateConfig, saveConfig } from '$lib/chatbot-builder-stores.js';
+  import { onMount, createEventDispatcher } from 'svelte';
+  import { chatbotConfig, activeSection, buildMethod, isLoading, errors, isDirty, updateConfig, saveConfig, updateSavedConfig } from '$lib/chatbot-builder-stores.js';
   import { showSidebar, user } from '$lib/stores';
   import MenuLines from '../icons/MenuLines.svelte';
   import UserMenu from '../layout/Sidebar/UserMenu.svelte';
@@ -14,9 +14,13 @@
   import SessionControlSection from './SessionControlSection.svelte';
   import LiveBotPreview from './LiveBotPreview.svelte';
   import ConversationalAiBuilder from './ConversationalAiBuilder.svelte';
-  import BotTestingPanel from './BotTestingPanel.svelte';
   import ConfigurationReview from './ConfigurationReview.svelte';
 
+  // Props for edit mode
+  export let editMode = false;
+  export let chatbotId = null;
+
+  const dispatch = createEventDispatcher();
 
   let config = {};
   let currentSection = 'overview';
@@ -179,15 +183,24 @@
   }
 
   async function handleSave() {
-    const result = await saveConfig();
+    let result;
+
+    if (editMode && chatbotId) {
+      // Update existing chatbot
+      result = await updateSavedConfig(chatbotId, true);
+    } else {
+      // Create new chatbot
+      result = await saveConfig();
+    }
+
     if (result.success) {
       // Show success message
       console.log('Configuration saved successfully!', result.data);
-      // Optionally redirect to chatbot list or edit page
-      // window.location.href = `/chatbots/${result.data.id}`;
+      dispatch('save', { success: true, data: result.data });
     } else {
       // Errors are now handled by the store and displayed under fields
       console.error('Failed to save configuration:', result.error);
+      dispatch('save', { success: false, error: result.error });
     }
   }
 
@@ -207,7 +220,10 @@
 
   function getContinueButtonText() {
     const currentIndex = sections.findIndex(section => section.id === currentSection);
-    return currentIndex === sections.length - 1 ? 'Save' : 'Continue';
+    if (currentIndex === sections.length - 1) {
+      return editMode ? 'Update' : 'Save';
+    }
+    return 'Continue';
   }
 
   function renderCurrentSection() {
@@ -231,21 +247,16 @@
 </script>
 
 <!-- Top Bar -->
-<div class="h-12 bg-white shadow-md flex items-center justify-between fixed top-0 left-0 right-0 z-50">
-  <!-- Left side - Menu Button Only -->
-  <div class="flex items-center h-full">
-    <!-- Menu Toggle Button -->
-    <div class="px-4">
-      <button
-        class="p-1.5 hover:bg-gray-100 rounded transition"
-        on:click={() => {
-          showSidebar.set(!$showSidebar);
-        }}
-        aria-label="Toggle Menu"
-      >
-        <MenuLines />
-      </button>
-    </div>
+<div class="h-12 bg-white shadow-md flex items-center justify-between sticky top-0 z-50">
+  <!-- Left side - Title or breadcrumb -->
+  <div class="flex items-center h-full px-4">
+    <h1 class="text-lg font-semibold text-gray-900">
+      {#if editMode}
+        Edit Chatbot: {config.name || 'Untitled'}
+      {:else}
+        Chatbot Builder
+      {/if}
+    </h1>
   </div>
 
   <!-- Right side - Notifications and User Menu -->
@@ -298,11 +309,11 @@
   </div>
 </div>
 
-<div class="flex min-h-screen relative pt-12 overflow-y-auto" style="background: #FFFFFF;">
+<div class="flex h-full relative overflow-y-auto" style="background: #FFFFFF;">
   <!-- Custom Chatbot Builder Sidebar -->
   <Sidebar />
 
-  <!-- Main Content - Account for 72px sidebar and 48px topbar -->
+  <!-- Main Content - Account for 72px sidebar -->
   <div class="flex-1 min-h-0 flex flex-col ml-[72px]">
     <!-- Header -->
     <div class="px-6 py-4" style="background: #FFFFFF;">
@@ -556,13 +567,6 @@
         {/if}
 
         <LiveBotPreview botName={config.name || 'Your Chatbot'} activeTab={activePreviewTab} persona={selectedPersona} />
-
-        <!-- Testing Panel -->
-        {#if $chatbotConfig.id}
-          <div class="mt-6">
-            <BotTestingPanel botId={String($chatbotConfig.id)} className="max-h-96" />
-          </div>
-        {/if}
       </div>
     </div>
   </div>
